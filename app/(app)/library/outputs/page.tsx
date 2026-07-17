@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { savedOutputs } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { Badge } from "@/components/ui/badge";
+import { ShareControls } from "./share-controls";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Saved outputs" };
@@ -84,6 +85,14 @@ export default async function SavedOutputsPage() {
             </summary>
             <div className="mt-3 border-t border-border pt-3">
               <OutputPreview kind={row.kind} content={row.content as SavedAnswer} />
+              <div className="mt-3 border-t border-border pt-3">
+                <ShareControls id={row.id} initialToken={row.shareToken} />
+                {row.shareToken && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Anyone with this link can view this output (read-only, no login). Revoke to disable it.
+                  </p>
+                )}
+              </div>
             </div>
           </details>
         ))}

@@ -97,6 +97,7 @@ export default async function DocumentPage({
           content: c.content,
           speakerRole: c.speakerRole,
           evidenceType: c.evidenceType,
+          sentiment: c.sentiment,
           sectionPath: c.sectionPath,
           pageRef: c.pageRef,
           segmentId: c.segmentId,

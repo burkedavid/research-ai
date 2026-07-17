@@ -55,6 +55,12 @@ interface Usage {
   ingestion: { documents: number; inputTokens: number; outputTokens: number };
 }
 
+interface ProposalRow {
+  id: string;
+  name: string;
+  occurrences: number;
+}
+
 type Tab = "users" | "themes" | "audit" | "usage" | "retention";
 
 export function AdminClient({
@@ -64,6 +70,7 @@ export function AdminClient({
   auditRows,
   projects,
   usage,
+  proposals,
 }: {
   currentUserId: string;
   users: UserRow[];
@@ -71,6 +78,7 @@ export function AdminClient({
   auditRows: AuditRow[];
   projects: ProjectRow[];
   usage: Usage;
+  proposals: ProposalRow[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("users");
@@ -200,6 +208,43 @@ export function AdminClient({
 
       {tab === "themes" && (
         <div className="mt-4">
+          {proposals.length > 0 && (
+            <Card className="mb-4 overflow-hidden pt-0">
+              <div className="h-1 w-full bg-sr-green" />
+              <CardContent className="pt-4">
+                <p className="text-sm font-semibold text-brand-900">
+                  Suggested new themes{" "}
+                  <span className="font-normal text-muted-foreground">— proposed by the ingest AI, outside the taxonomy</span>
+                </p>
+                <div className="mt-3 space-y-2">
+                  {proposals.map((p) => (
+                    <div key={p.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-brand-50/40 px-3 py-2 text-sm">
+                      <span className="font-medium text-brand-900">{p.name}</span>
+                      <span className="text-xs text-muted-foreground">proposed {p.occurrences}×</span>
+                      <div className="ml-auto flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => call(`/api/theme-proposals/${p.id}`, "POST", { action: "promote" })}
+                        >
+                          Add to taxonomy
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => call(`/api/theme-proposals/${p.id}`, "POST", { action: "dismiss" })}
+                        >
+                          Dismiss
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardContent>
               <form

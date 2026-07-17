@@ -1,0 +1,101 @@
+================================================================================
+CONSUMER SENTIMENT INTELLIGENCE HUB — FEATURE IDEAS FROM COMPETITIVE RESEARCH
+================================================================================
+Source: deep-research competitive scan (Dovetail, Condens, Conveo, NotebookLM,
+Glean, Quantilope inColor, Discuss.io, Remesh, + peer-reviewed AI-rigour studies).
+All findings verified 3-0. Date: 2026-07-17.
+
+--------------------------------------------------------------------------------
+VALIDATION (already best-in-class — keep and market it)
+--------------------------------------------------------------------------------
+- Citation-grounded "Ask the Archive" with sentence-level citations and
+  machine-verified verbatim quotes is the SAME paradigm as Dovetail, NotebookLM
+  and Glean. We are at parity on the hardest part.
+- Research rigour is a genuine market differentiator, not just an internal
+  constraint: 47-69% of AI-generated citations are hallucinated/inaccurate in
+  peer-reviewed studies (one lit review: ~66%). Our machine-verified quotes,
+  cautious/small-base language, PII redaction and source traceability directly
+  answer this. Every NEW AI feature below must inherit these guardrails.
+
+================================================================================
+QUICK WINS (low effort, fit current architecture, preserve rigour)
+================================================================================
+
+1. AI AUTO-TAG SUGGESTIONS INTO THE HUMAN-GATED TAXONOMY
+   - What: extend the existing Haiku ingest pass to propose theme tags per
+     chunk; reviewer confirms/rejects at the review gate (suggestions, not live).
+   - Exemplars: Dovetail "Magic Highlight", Condens AI tagging suggestions.
+   - Complexity: LOW. We already run a suggestion pass; this widens it.
+   - Rigour: preserved (human confirms).
+
+2. HIGHLIGHT / VERBATIM-LEVEL SENTIMENT FLAGS (OPTIONAL, CAVEATED OVERLAY)
+   - What: positive / negative / neutral flag per quote or highlight, shown as
+     an optional overlay with the usual caveats (no false statistical precision).
+   - Exemplars: Dovetail, Discuss.io, Quantilope inColor.
+   - Complexity: LOW-MEDIUM.
+   - Rigour: must be labelled AI-assessed, never presented as prevalence.
+
+3. SHAREABLE READ-ONLY INSIGHT / REPORT LINKS (NO LOGIN)
+   - What: public/presentation-mode links to a report or insight board for
+     stakeholders who won't log in. Today sharing = Word/CSV export only.
+   - Exemplars: Dovetail shareable insight boards & highlight reels.
+   - Complexity: LOW-MEDIUM. High client demand.
+   - Note: must respect ACL / transcript-access; link scope explicit.
+
+4. PERMISSION-AWARE RE-RANKING (ON TOP OF EXISTING ACL)
+   - What: rank accessible AND most-relevant content higher, beyond binary ACL
+     filtering.
+   - Exemplars: Glean retrieval-quality re-ranking.
+   - Complexity: MEDIUM. Incremental retrieval improvement.
+
+================================================================================
+LARGER BETS (higher value, more build)
+================================================================================
+
+5. AI THEME-CLUSTERING & CROSS-WAVE SYNTHESIS
+   - What: auto-group emergent themes across the whole longitudinal archive;
+     narrative synthesis of patterns across many waves (not within one).
+   - Exemplars: Dovetail "Magic Cluster" + cross-study synthesis.
+   - Complexity: MEDIUM-HIGH. HIGH value — plays to our unique longitudinal
+     asset. Realises the spec's "Early Warning Signals / emerging themes" (A10).
+
+6. "DEEP RESEARCH"-STYLE STRUCTURED BRIEFINGS (EXTEND CREATE REPORT)
+   - What: multi-retrieval synthesis into a longer structured briefing beyond
+     templated first drafts.
+   - Exemplars: NotebookLM Deep Research (15-25 sources -> structured briefing).
+   - Complexity: MEDIUM-HIGH. Natural extension of Create Report.
+
+7. AUDIO / VIDEO INGESTION WITH TRANSCRIPT-LINKED CLIPS + HIGHLIGHT REELS
+   - What: store audio/video, timestamped transcripts, jump quote -> clip,
+     assemble highlight reels.
+   - Exemplars: Discuss.io (video editing + highlight reels), Conveo
+     (multimodal: speech, tone, visual), Quantilope inColor (facial emotion).
+   - Complexity: HIGH. The one category we fully lack.
+   - Trigger: only worth it IF/WHEN source material becomes multimodal
+     (currently Word/PPT/transcripts only).
+
+================================================================================
+OPTIONAL / WATCH
+================================================================================
+
+8. NOTEBOOKLM-STYLE AUDIO / VIDEO "OVERVIEWS" AS STAKEHOLDER DIGESTS
+   - What: podcast-style two-host audio, or narrated-slide video, summary of a
+     report/wave for stakeholders.
+   - Exemplars: NotebookLM Audio Overviews / Video Overviews.
+   - Complexity: MEDIUM-HIGH. Novel; lower priority than 1-6.
+
+9. LIVE AI-MODERATED "QUAL AT QUANT SCALE" (ADJACENT, MONITOR ONLY)
+   - What: live moderated discussions with real-time AI analytics surfacing
+     themes/quotes/quantified sentiment and driving follow-up questions.
+   - Exemplars: Remesh.
+   - Relevance: adjacent primary-research capability, less relevant to a
+     longitudinal archive, but shows where market expectations are heading.
+
+================================================================================
+RECOMMENDED ORDER
+================================================================================
+Start: #1 (auto-tag suggestions) + #3 (shareable stakeholder links) — days, not
+weeks; both map onto existing spec concepts (review gate, saved outputs).
+Then:  #5 (cross-wave AI clustering) — the strategic bet on our unique asset.
+Guardrail: every new AI feature inherits verification + caveats + traceability.
+================================================================================

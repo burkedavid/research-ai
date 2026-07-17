@@ -1,14 +1,15 @@
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/db";
-import { auditLog, chunkThemes, chunks, segments, themes, waves } from "@/db/schema";
+import { auditLog, chunkThemes, chunks, documents, segments, themeProposals, themes, waves } from "@/db/schema";
 import { buildExportDocx } from "@/lib/export/docx";
 import { parseDocx } from "@/lib/parsers/docx";
 import { comparePeriods } from "@/lib/services/compare";
+import { acceptAllSuggestions } from "@/lib/services/documents";
 import { generateReport } from "@/lib/services/reports";
 import { getSegmentProfile } from "@/lib/services/segments";
 import { createTheme, mergeThemes } from "@/lib/services/themes";
-import { admin, ensureCorpusIngested, researcher, summaryOnly } from "./helpers";
+import { admin, createTestWave, ensureCorpusIngested, researcher, summaryOnly, uploadBuffer, CORPUS_WAVES } from "./helpers";
 
 beforeAll(async () => {
   await ensureCorpusIngested();
@@ -154,5 +155,115 @@ describe("theme taxonomy (§A5.2)", () => {
   it("non-admins cannot edit the taxonomy", async () => {
     const user = await researcher();
     await expect(createTheme(user, { name: "Should fail" })).rejects.toThrow(/admin/i);
+  });
+});
+
+describe("shareable read-only links (F3)", () => {
+  it("creates a public share token, reads it without auth, and revokes it", async () => {
+    const user = await researcher();
+    const { savedOutputs } = await import("@/db/schema");
+    const { createShareLink, revokeShareLink, getSharedOutput } = await import("@/lib/services/sharing");
+
+    const [row] = await db
+      .insert(savedOutputs)
+      .values({ userId: user.id, kind: "answer", title: "Shareable test", content: { answer: "Hello stakeholder" } })
+      .returning();
+
+    const token = await createShareLink(user, row.id);
+    expect(token).toBeTruthy();
+
+    // public read — no user
+    const shared = await getSharedOutput(token);
+    expect(shared?.title).toBe("Shareable test");
+    expect((shared?.content as { answer?: string })?.answer).toBe("Hello stakeholder");
+
+    // idempotent: same token returned
+    expect(await createShareLink(user, row.id)).toBe(token);
+
+    await revokeShareLink(user, row.id);
+    expect(await getSharedOutput(token)).toBeNull();
+  });
+
+  it("does not let one user share another user's output", async () => {
+    const owner = await researcher();
+    const other = await admin();
+    const { savedOutputs } = await import("@/db/schema");
+    const { createShareLink } = await import("@/lib/services/sharing");
+    const [row] = await db
+      .insert(savedOutputs)
+      .values({ userId: owner.id, kind: "answer", title: "Private", content: {} })
+      .returning();
+    await expect(createShareLink(other, row.id)).rejects.toThrow(/not found/i);
+  });
+});
+
+describe("sentiment flags (F2)", () => {
+  it("assigns AI-assessed sentiment to indexed chunks and supports filtering", async () => {
+    const user = await researcher();
+    // every indexed chunk should carry a sentiment after ingest
+    const rows = await db.select({ sentiment: chunks.sentiment }).from(chunks).limit(50);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.sentiment !== null)).toBe(true);
+
+    // the archive contains negative-tone material (energy crisis)
+    const negChunks = await db.select({ id: chunks.id }).from(chunks).where(eq(chunks.sentiment, "negative")).limit(1);
+    expect(negChunks.length).toBeGreaterThan(0);
+
+    // the sentiment filter constrains results to that tone
+    const { searchChunks } = await import("@/lib/retrieval/search");
+    const negative = await searchChunks({
+      query: "energy bills heating worried struggling cutting back",
+      filters: { sentiments: ["negative"] },
+      user,
+      k: 12,
+    });
+    expect(negative.chunks.every((c) => c.sentiment === "negative")).toBe(true);
+  });
+});
+
+describe("AI auto-tag suggestions (F1)", () => {
+  it("captures genuinely-new theme proposals from ingest (streaming/subscriptions)", async () => {
+    // ensureCorpusIngested ran in beforeAll; the corpus mentions streaming/subscriptions
+    const proposals = await db.select().from(themeProposals);
+    expect(proposals.some((p) => /subscription|streaming/i.test(p.name))).toBe(true);
+  });
+
+  it("bulk-accepts AI-suggested tags into authoritative human tags", async () => {
+    const user = await researcher();
+    // fresh in-review doc (not approved) so suggestions can be accepted
+    const waveId = await createTestWave({ ...CORPUS_WAVES[0], waveNumber: 910, year: 1980 });
+    const docId = await uploadBuffer({
+      user,
+      waveId,
+      buffer: Buffer.from(
+        "MOD: How are your energy bills?\n\nR: The heating and electricity costs have really hit us hard this winter.",
+        "utf-8",
+      ),
+      filename: "f1-suggestions.txt",
+      mimeType: "text/plain",
+      sourceType: "transcript",
+    });
+
+    const before = await db
+      .select()
+      .from(chunkThemes)
+      .innerJoin(chunks, eq(chunkThemes.chunkId, chunks.id))
+      .where(eq(chunks.documentId, docId));
+    expect(before.length).toBeGreaterThan(0);
+    expect(before.every((r) => r.chunk_themes.source === "ai_suggested")).toBe(true);
+
+    const accepted = await acceptAllSuggestions(user, docId);
+    expect(accepted).toBeGreaterThan(0);
+
+    const after = await db
+      .select()
+      .from(chunkThemes)
+      .innerJoin(chunks, eq(chunkThemes.chunkId, chunks.id))
+      .where(eq(chunks.documentId, docId));
+    expect(after.every((r) => r.chunk_themes.source === "human")).toBe(true);
+
+    // guard: only valid while in review
+    const [doc] = await db.select().from(documents).where(eq(documents.id, docId));
+    expect(doc.status).toBe("review");
   });
 });

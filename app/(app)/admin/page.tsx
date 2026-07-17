@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { auditLog, projects, themes, users } from "@/db/schema";
 import { getUsageSummary } from "@/lib/services/admin";
+import { listThemeProposals } from "@/lib/services/themes";
 import { getSessionUser } from "@/lib/session";
 import { AdminClient } from "./admin-client";
 
@@ -20,12 +21,13 @@ export default async function AdminPage() {
     );
   }
 
-  const [userRows, themeRows, auditRows, projectRows, usage] = await Promise.all([
+  const [userRows, themeRows, auditRows, projectRows, usage, proposals] = await Promise.all([
     db.select().from(users).orderBy(users.email),
     db.select().from(themes).orderBy(themes.name),
     db.select().from(auditLog).orderBy(desc(auditLog.createdAt)).limit(200),
     db.select().from(projects),
     getUsageSummary(),
+    listThemeProposals(),
   ]);
 
   return (
@@ -57,6 +59,7 @@ export default async function AdminPage() {
       }))}
       projects={projectRows.map((p) => ({ id: p.id, name: p.name, retentionMonths: p.retentionMonths }))}
       usage={usage}
+      proposals={proposals.map((p) => ({ id: p.id, name: p.name, occurrences: p.occurrences }))}
     />
   );
 }

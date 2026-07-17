@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { EMPTY_FILTERS, FilterSidebar, toApiFilters, type FilterState } from "@/components/filter-sidebar";
 import { PageHeader } from "@/components/page-header";
+import { SentimentBadge } from "@/components/sentiment-badge";
 import type { FilterOptions } from "@/lib/services/filter-options";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ interface Quote {
   segmentName: string | null;
   wave: string;
   filename: string;
+  sentiment: string | null;
   matchedSemantic: boolean;
   matchedKeyword: boolean;
 }
@@ -226,6 +228,7 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
                     “{quote.quote}”
                   </blockquote>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <SentimentBadge sentiment={quote.sentiment} />
                     <span>
                       {quote.interviewRef ?? "consumer"}
                       {quote.segmentName ? ` · ${quote.segmentName}` : ""} · {quote.wave}

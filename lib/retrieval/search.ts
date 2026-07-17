@@ -13,6 +13,7 @@ export interface SearchFilters {
   themeIds?: string[];
   sourceTypes?: string[];
   evidenceTypes?: string[];
+  sentiments?: string[];
   speakerRole?: string;
   projectIds?: string[];
 }
@@ -33,6 +34,7 @@ export interface RetrievedChunk {
   year: number;
   segmentName: string | null;
   interviewRef: string | null;
+  sentiment: string | null;
   /** retrieval explainability (§B7): which legs matched and their scores */
   match: {
     semantic: boolean;
@@ -70,6 +72,7 @@ interface LegRow {
   year: number;
   segment_name: string | null;
   interview_ref: string | null;
+  sentiment: string | null;
   score: number;
 }
 
@@ -104,6 +107,9 @@ function buildWhere(filters: SearchFilters, user: SessionUser): SQL {
   if (filters.evidenceTypes?.length) {
     conditions.push(sql`c.evidence_type IN ${sql.raw(`(${filters.evidenceTypes.map((s) => `'${s.replace(/'/g, "")}'`).join(",")})`)}`);
   }
+  if (filters.sentiments?.length) {
+    conditions.push(sql`c.sentiment IN ${sql.raw(`(${filters.sentiments.map((s) => `'${s.replace(/'/g, "")}'`).join(",")})`)}`);
+  }
   if (filters.speakerRole) {
     conditions.push(sql`c.speaker_role = ${filters.speakerRole}`);
   }
@@ -116,7 +122,7 @@ function buildWhere(filters: SearchFilters, user: SessionUser): SQL {
 
 const SELECT_FIELDS = sql`
   c.id AS chunk_id, c.content, c.evidence_type, c.speaker_role,
-  c.section_path, c.page_ref,
+  c.section_path, c.page_ref, c.sentiment,
   d.id AS document_id, d.filename, d.source_type,
   w.id AS wave_id, w.wave_number, w.month, w.year,
   s.name AS segment_name, i.external_ref AS interview_ref
@@ -231,6 +237,7 @@ export async function searchChunks(params: {
       year: Number(row.year),
       segmentName: row.segment_name,
       interviewRef: row.interview_ref,
+      sentiment: row.sentiment,
       match,
     })),
     candidateCount: fused.size,

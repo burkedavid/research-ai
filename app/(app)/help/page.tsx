@@ -156,6 +156,11 @@ export default async function HelpPage() {
               voice with shortlisting and referenced export.
             </li>
             <li>
+              <Link href="/library/outputs" className="font-medium underline">Saved outputs</Link> — save answers,
+              comparisons, quote lists and report drafts, and create a <em>read-only share link</em> so a stakeholder
+              can view one without logging in (revoke it any time).
+            </li>
+            <li>
               <Link href="/reports" className="font-medium underline">Create Report</Link> — grounded first drafts
               (monthly summary, theme deep dive, what-has-changed) with Word export.
             </li>
@@ -175,8 +180,10 @@ export default async function HelpPage() {
             </li>
             <li>
               <strong>Review each document.</strong> Check the extracted passages against the original, fix speaker
-              roles, segments and themes, and accept or dismiss flagged personal data. Redactions change the
-              searchable text; the original file is kept untouched but access-restricted.
+              roles, segments and themes, and accept or dismiss flagged personal data. The ingest AI pre-suggests
+              theme tags — accept them individually or use <em>Accept AI tags</em> to confirm them all at once. If it
+              spots a recurring topic outside the taxonomy it proposes a new theme for an admin to add. Redactions
+              change the searchable text; the original file is kept untouched but access-restricted.
             </li>
             <li>Approve each document to index it, then confirm the wave.</li>
             <li>Run a what-has-changed report against the previous wave.</li>
@@ -209,6 +216,11 @@ export default async function HelpPage() {
             <li>
               <strong>Weak evidence warnings</strong> mean the archive had little to say — widen the filters or treat
               the answer as indicative.
+            </li>
+            <li>
+              <strong>Sentiment badges</strong> on quotes and passages show the ingest AI&apos;s assessment of tone
+              (positive / negative / neutral / mixed) and can be filtered on. It is indicative only — never read it as
+              a statistical measure of how many consumers feel a certain way.
             </li>
           </ul>
         </SectionCard>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { SentimentBadge } from "@/components/sentiment-badge";
 
 interface ChunkView {
   id: string;
@@ -14,6 +15,7 @@ interface ChunkView {
   content: string;
   speakerRole: string;
   evidenceType: string;
+  sentiment: string | null;
   sectionPath: string | null;
   pageRef: string | null;
   segmentId: string | null;
@@ -116,24 +118,48 @@ export function ReviewEditor({ documentId, highlightChunkId, documentStatus, can
   }
 
   const totalPii = items.reduce((n, c) => n + c.piiSuggestions.length, 0);
+  const aiSuggestedCount = items.reduce(
+    (n, c) => n + c.themes.filter((t) => t.source === "ai_suggested").length,
+    0,
+  );
+
+  async function acceptSuggestions() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/documents/${documentId}/accept-suggestions`, { method: "POST" });
+    setBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Could not accept suggestions");
+      return;
+    }
+    router.refresh();
+  }
 
   return (
     <div className="mt-6">
-      <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-lg font-medium text-brand-900">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="flex flex-wrap items-center gap-2 text-lg font-medium text-brand-900">
           Extracted chunks ({items.length})
-          {totalPii > 0 && (
-            <Badge variant="destructive">{totalPii} possible PII span(s) to resolve</Badge>
-          )}
+          {totalPii > 0 && <Badge variant="destructive">{totalPii} possible PII span(s) to resolve</Badge>}
         </h2>
-        {canApprove && documentStatus === "review" && (
-          <div className="flex gap-2">
-            <Button type="button" variant="destructive" onClick={() => decide("reject")} disabled={busy}>
-              Reject
-            </Button>
-            <Button type="button" onClick={() => decide("approve")} disabled={busy}>
-              {busy ? "Working…" : "Approve & index"}
-            </Button>
+        {canEdit && (
+          <div className="flex flex-wrap gap-2">
+            {aiSuggestedCount > 0 && (
+              <Button type="button" variant="outline" onClick={acceptSuggestions} disabled={busy}>
+                Accept AI tags ({aiSuggestedCount})
+              </Button>
+            )}
+            {canApprove && documentStatus === "review" && (
+              <>
+                <Button type="button" variant="destructive" onClick={() => decide("reject")} disabled={busy}>
+                  Reject
+                </Button>
+                <Button type="button" onClick={() => decide("approve")} disabled={busy}>
+                  {busy ? "Working…" : "Approve & index"}
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -155,6 +181,7 @@ export function ReviewEditor({ documentId, highlightChunkId, documentStatus, can
               <span className="font-mono">#{chunk.seq}</span>
               {chunk.sectionPath && <span>· {chunk.sectionPath}</span>}
               {chunk.pageRef && <span>· {chunk.pageRef}</span>}
+              <SentimentBadge sentiment={chunk.sentiment} />
               {chunk.embedded && <Badge className="border-green-200 bg-green-100 text-green-800">indexed</Badge>}
             </div>
 

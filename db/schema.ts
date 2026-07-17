@@ -53,6 +53,9 @@ export const evidenceTypeEnum = pgEnum("evidence_type", [
   "context",
 ]);
 export const chunkThemeSourceEnum = pgEnum("chunk_theme_source", ["ai_suggested", "human"]);
+// AI-assessed emotional tone of a chunk (F2) — an optional, caveated overlay,
+// never presented as statistical prevalence.
+export const sentimentEnum = pgEnum("sentiment", ["positive", "negative", "neutral", "mixed"]);
 export const savedOutputKindEnum = pgEnum("saved_output_kind", [
   "answer",
   "quote_list",
@@ -119,6 +122,25 @@ export const themes = pgTable("themes", {
   mergedInto: uuid("merged_into"),
 });
 
+// Genuinely-new theme ideas the ingest AI proposes outside the controlled
+// taxonomy (§A5.2 "allow new themes to emerge"). Reviewed by an admin who
+// promotes a proposal into a real theme or dismisses it — the taxonomy stays
+// human-governed. (F1)
+export const themeProposalStatusEnum = pgEnum("theme_proposal_status", ["open", "promoted", "dismissed"]);
+
+export const themeProposals = pgTable(
+  "theme_proposals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    rationale: text("rationale"),
+    occurrences: integer("occurrences").notNull().default(1),
+    status: themeProposalStatusEnum("status").notNull().default("open"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("theme_proposals_name_uq").on(t.name)],
+);
+
 export const documents = pgTable(
   "documents",
   {
@@ -183,6 +205,8 @@ export const chunks = pgTable(
     tokenCount: integer("token_count").notNull(),
     speakerRole: speakerRoleEnum("speaker_role").notNull().default("n/a"),
     evidenceType: evidenceTypeEnum("evidence_type").notNull(),
+    // AI-assessed emotional tone (F2); NULL until assessed. Indicative only.
+    sentiment: sentimentEnum("sentiment"),
     sectionPath: text("section_path"),
     pageRef: text("page_ref"),
     segmentId: uuid("segment_id").references(() => segments.id),
@@ -280,6 +304,9 @@ export const savedOutputs = pgTable("saved_outputs", {
   kind: savedOutputKindEnum("kind").notNull(),
   title: text("title").notNull(),
   content: jsonb("content").notNull(),
+  // read-only public share (F3): unguessable token, null until shared, revocable
+  shareToken: text("share_token").unique(),
+  sharedAt: timestamp("shared_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -16,6 +16,7 @@ export default auth((req) => {
 export const config = {
   // Everything except auth endpoints, the Inngest webhook (signature-verified
   // by the Inngest SDK itself), static assets (any path with a file
-  // extension, e.g. the logo), and the login page.
-  matcher: ["/((?!api/auth|api/inngest|_next/static|_next/image|login|.*\\..*).*)"],
+  // extension, e.g. the logo), the login page, and public read-only share
+  // links (/shared/<token>, F3 — no login required, scoped to one output).
+  matcher: ["/((?!api/auth|api/inngest|_next/static|_next/image|login|shared|.*\\..*).*)"],
 };

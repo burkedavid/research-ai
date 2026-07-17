@@ -14,10 +14,13 @@ export interface ThemeSuggestion {
   confidence: number;
 }
 
+export type Sentiment = "positive" | "negative" | "neutral" | "mixed";
+
 export interface ChunkSuggestions {
   seq: number;
   themes: ThemeSuggestion[];
   pii: PiiSpan[];
+  sentiment: Sentiment;
 }
 
 export interface SuggestUsage {
@@ -26,12 +29,43 @@ export interface SuggestUsage {
   model: string;
 }
 
+/** Topics that recur in consumer talk but sit OUTSIDE the seeded taxonomy —
+ *  used by fake mode to surface realistic new-theme proposals (F1). The real
+ *  LLM proposes these itself via the schema's newThemeProposals field. */
+const OFF_TAXONOMY_PROPOSALS: { theme: string; keywords: string[] }[] = [
+  { theme: "Subscriptions and streaming", keywords: ["streaming", "subscription", "netflix", "sim "] },
+  { theme: "Mental health and wellbeing", keywords: ["mental health", "wellbeing", "stress", "lonely", "isolation"] },
+  { theme: "Childcare and family costs", keywords: ["childcare", "school", "kids ", "children"] },
+  { theme: "Insurance and protection", keywords: ["insurance", "cover", "premium"] },
+];
+
+function heuristicNewThemes(content: string): string[] {
+  const lower = ` ${content.toLowerCase()} `;
+  return OFF_TAXONOMY_PROPOSALS.filter((p) => p.keywords.some((k) => lower.includes(k))).map((p) => p.theme);
+}
+
+const POSITIVE_CUES = ["optimis", "hopeful", "confiden", "positive", "steadier", "relief", "comfortable", "better", "recover", "pleased", "good", "kind", "helpful", "grateful", "genuinely hopeful"];
+const NEGATIVE_CUES = ["anxious", "anxiety", "worried", "worry", "frighten", "scared", "scares", "bleak", "pessimis", "struggl", "shameful", "angry", "furious", "abandon", "grim", "exhausted", "desperate", "cannot", "can't", "cutting back", "cut back", "squeez", "hard", "afraid"];
+
+/** Heuristic tone for fake/dev mode (F2). The real LLM path assesses tone
+ *  itself. Consumer content only — moderator lines are stripped upstream. */
+export function heuristicSentiment(content: string): Sentiment {
+  const lower = content.toLowerCase();
+  const pos = POSITIVE_CUES.filter((c) => lower.includes(c)).length;
+  const neg = NEGATIVE_CUES.filter((c) => lower.includes(c)).length;
+  if (pos > 0 && neg > 0 && Math.abs(pos - neg) <= 1) return "mixed";
+  if (neg > pos) return "negative";
+  if (pos > neg) return "positive";
+  return "neutral";
+}
+
 const suggestionSchema = z.object({
   chunks: z.array(
     z.object({
       seq: z.number(),
       themes: z.array(z.object({ name: z.string(), confidence: z.number().min(0).max(1) })),
       newThemeProposals: z.array(z.string()).default([]),
+      sentiment: z.enum(["positive", "negative", "neutral", "mixed"]).default("neutral"),
       pii: z.array(
         z.object({
           text: z.string(),
@@ -106,14 +140,18 @@ export function heuristicThemes(content: string, themeNames: string[]): ThemeSug
 export async function suggestMetadata(
   chunks: ChunkDraft[],
   themeNames: string[],
-): Promise<{ suggestions: ChunkSuggestions[]; usage: SuggestUsage }> {
+): Promise<{ suggestions: ChunkSuggestions[]; newThemeProposals: string[]; usage: SuggestUsage }> {
   if (env.LLM_PROVIDER === "fake") {
+    const proposals = new Set<string>();
+    for (const c of chunks) for (const t of heuristicNewThemes(c.content)) if (!themeNames.includes(t)) proposals.add(t);
     return {
       suggestions: chunks.map((c) => ({
         seq: c.seq,
         themes: heuristicThemes(c.content, themeNames),
         pii: regexPii(c.content),
+        sentiment: heuristicSentiment(c.content),
       })),
+      newThemeProposals: [...proposals],
       usage: { inputTokens: 0, outputTokens: 0, model: "heuristic" },
     };
   }
@@ -124,6 +162,7 @@ export async function suggestMetadata(
     `Controlled theme taxonomy: ${themeNames.join("; ")}.`,
     "For each chunk: suggest up to 4 themes FROM THE TAXONOMY with confidence 0-1;",
     "propose genuinely new themes separately in newThemeProposals (rarely);",
+    "assess the consumer's emotional tone as sentiment (positive|negative|neutral|mixed);",
     "flag possible PII spans (person names, phone numbers, email addresses, street addresses).",
     "Do not flag pseudonymised interview references like RM_F_07_2026.",
     "",
@@ -140,6 +179,12 @@ export async function suggestMetadata(
         prompt: attempt === 0 ? prompt : `${prompt}\n\nYour previous output failed validation: ${lastError}. Return valid JSON matching the schema.`,
       });
       const bySeq = new Map(result.object.chunks.map((c) => [c.seq, c]));
+      const proposals = new Set<string>();
+      for (const c of result.object.chunks) {
+        for (const p of c.newThemeProposals ?? []) {
+          if (p.trim() && !themeNames.some((t) => t.toLowerCase() === p.trim().toLowerCase())) proposals.add(p.trim());
+        }
+      }
       return {
         suggestions: chunks.map((c) => {
           const s = bySeq.get(c.seq);
@@ -149,8 +194,10 @@ export async function suggestMetadata(
             seq: c.seq,
             themes: (s?.themes ?? []).filter((t) => themeNames.includes(t.name)),
             pii: pii.filter((p) => (seen.has(p.text) ? false : (seen.add(p.text), true))),
+            sentiment: (s?.sentiment ?? "neutral") as Sentiment,
           };
         }),
+        newThemeProposals: [...proposals],
         usage: {
           inputTokens: result.usage.inputTokens ?? 0,
           outputTokens: result.usage.outputTokens ?? 0,

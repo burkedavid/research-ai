@@ -16,6 +16,7 @@ export const filtersSchema = z
     themeIds: z.array(z.string().uuid()).optional(),
     sourceTypes: z.array(z.string()).optional(),
     evidenceTypes: z.array(z.string()).optional(),
+    sentiments: z.array(z.enum(["positive", "negative", "neutral", "mixed"])).optional(),
     speakerRole: z.enum(["moderator", "consumer", "mixed", "n/a"]).optional(),
   })
   .optional();

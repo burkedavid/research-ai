@@ -95,6 +95,35 @@ export async function registerUpload(params: {
   return { documentId: doc.id, version: doc.version };
 }
 
+/**
+ * Bulk-accept every AI-suggested theme tag on a document (F1): promotes
+ * ai_suggested chunk_themes to authoritative human tags in one action, so a
+ * reviewer who agrees with the suggestions confirms them without clicking each.
+ * Returns how many tags were accepted.
+ */
+export async function acceptAllSuggestions(user: SessionUser, documentId: string, ip?: string | null): Promise<number> {
+  requireResearcher(user);
+  const [doc] = await db.select().from(documents).where(eq(documents.id, documentId));
+  if (!doc || doc.status !== "review") {
+    throw new Error("Suggestions can only be accepted while the document is in review");
+  }
+  const result = await db.execute(sql`
+    UPDATE chunk_themes SET source = 'human', confidence = NULL
+    WHERE source = 'ai_suggested'
+      AND chunk_id IN (SELECT id FROM chunks WHERE document_id = ${documentId})
+  `);
+  const count = (result as unknown as { count?: number }).count ?? 0;
+  await audit({
+    userId: user.id,
+    action: "approve",
+    entityType: "document",
+    entityId: documentId,
+    detail: { op: "accept_all_suggestions", tags: count },
+    ip,
+  });
+  return count;
+}
+
 /** Approval (§B6.5): review gate opens, embedding starts. */
 export async function approveDocument(user: SessionUser, documentId: string, ip?: string | null): Promise<void> {
   requireResearcher(user);
@@ -222,6 +251,7 @@ export async function getDocumentWithChunks(user: SessionUser, documentId: strin
       tokenCount: chunks.tokenCount,
       speakerRole: chunks.speakerRole,
       evidenceType: chunks.evidenceType,
+      sentiment: chunks.sentiment,
       sectionPath: chunks.sectionPath,
       pageRef: chunks.pageRef,
       segmentId: chunks.segmentId,

@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { chunkThemes, themes } from "@/db/schema";
+import { chunkThemes, themeProposals, themes } from "@/db/schema";
 import { audit } from "@/lib/audit";
 import { ForbiddenError, type SessionUser } from "@/lib/errors";
 
@@ -10,6 +10,49 @@ function requireAdmin(user: SessionUser): void {
 
 export async function listThemes() {
   return db.select().from(themes).orderBy(themes.name);
+}
+
+/** Open new-theme proposals from ingest (F1), most-proposed first. */
+export async function listThemeProposals() {
+  return db
+    .select()
+    .from(themeProposals)
+    .where(eq(themeProposals.status, "open"))
+    .orderBy(desc(themeProposals.occurrences), themeProposals.name);
+}
+
+/** Promote a proposal into a real, active theme (admin, F1). */
+export async function promoteThemeProposal(user: SessionUser, proposalId: string, ip?: string | null) {
+  requireAdmin(user);
+  const [proposal] = await db.select().from(themeProposals).where(eq(themeProposals.id, proposalId));
+  if (!proposal || proposal.status !== "open") throw new Error("Proposal not found or already actioned");
+  const [theme] = await db
+    .insert(themes)
+    .values({ name: proposal.name, definition: proposal.rationale })
+    .onConflictDoNothing()
+    .returning();
+  await db.update(themeProposals).set({ status: "promoted" }).where(eq(themeProposals.id, proposalId));
+  await audit({
+    userId: user.id,
+    action: "theme_edit",
+    entityType: "theme",
+    entityId: theme?.id ?? proposalId,
+    detail: { op: "promote_proposal", name: proposal.name },
+    ip,
+  });
+}
+
+export async function dismissThemeProposal(user: SessionUser, proposalId: string, ip?: string | null) {
+  requireAdmin(user);
+  await db.update(themeProposals).set({ status: "dismissed" }).where(eq(themeProposals.id, proposalId));
+  await audit({
+    userId: user.id,
+    action: "theme_edit",
+    entityType: "theme_proposal",
+    entityId: proposalId,
+    detail: { op: "dismiss_proposal" },
+    ip,
+  });
 }
 
 export async function createTheme(user: SessionUser, params: { name: string; definition?: string }, ip?: string | null) {

@@ -1,6 +1,6 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { chunkThemes, chunks, documents, interviews, segments, themes } from "@/db/schema";
+import { chunkThemes, chunks, documents, interviews, segments, themeProposals, themes } from "@/db/schema";
 import { getEmbeddings } from "@/lib/embeddings";
 import { parseFile, type ParsedBlock } from "@/lib/parsers";
 import { getStorage } from "@/lib/storage";
@@ -149,7 +149,19 @@ export async function suggestDocumentMetadata(documentId: string): Promise<{ sug
     sectionPath: c.sectionPath,
     pageRef: c.pageRef,
   }));
-  const { suggestions, usage } = await suggestMetadata(drafts, [...themeByName.keys()]);
+  const { suggestions, newThemeProposals, usage } = await suggestMetadata(drafts, [...themeByName.keys()]);
+
+  // record genuinely-new theme ideas for admin review (F1). Dedup by name;
+  // re-proposals bump the occurrence count so common ideas rise to the top.
+  for (const name of newThemeProposals) {
+    await db
+      .insert(themeProposals)
+      .values({ name })
+      .onConflictDoUpdate({
+        target: themeProposals.name,
+        set: { occurrences: sql`${themeProposals.occurrences} + 1` },
+      });
+  }
 
   const chunkBySeq = new Map(docChunks.map((c) => [c.seq, c]));
   for (const suggestion of suggestions) {
@@ -163,9 +175,9 @@ export async function suggestDocumentMetadata(documentId: string): Promise<{ sug
         .values({ chunkId: chunk.id, themeId, source: "ai_suggested", confidence: theme.confidence })
         .onConflictDoNothing();
     }
-    if (suggestion.pii.length > 0) {
-      await db.update(chunks).set({ piiSuggestions: suggestion.pii }).where(eq(chunks.id, chunk.id));
-    }
+    const set: Partial<typeof chunks.$inferInsert> = { sentiment: suggestion.sentiment };
+    if (suggestion.pii.length > 0) set.piiSuggestions = suggestion.pii;
+    await db.update(chunks).set(set).where(eq(chunks.id, chunk.id));
   }
 
   // gate (§B6.4): document sits in review until a human approves
