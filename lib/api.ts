@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { DuplicateDocumentError } from "@/lib/services/documents";
-import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import { DuplicateDocumentError, ForbiddenError, UnauthorizedError } from "@/lib/errors";
 
 /**
  * Route handlers are thin (§B8): Zod-validate → service call → audit → respond.

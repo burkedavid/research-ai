@@ -18,3 +18,10 @@ export class UnauthorizedError extends Error {
 export class ForbiddenError extends Error {
   status = 403 as const;
 }
+
+export class DuplicateDocumentError extends Error {
+  status = 409 as const;
+  constructor(public existingId: string) {
+    super("An identical file already exists in this wave");
+  }
+}

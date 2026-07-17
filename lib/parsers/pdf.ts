@@ -1,14 +1,19 @@
-import { PDFParse } from "pdf-parse";
 import type { ParsedBlock, ParseResult, ParseWarning } from "./types";
 
 /**
  * PDF text extraction (§B6.1) with per-page references. Scanned/image-only
  * pages produce a possible_scanned_pdf warning for the review queue.
+ *
+ * pdf-parse pulls in pdfjs, which references browser globals (DOMMatrix) at
+ * module load. We import it lazily INSIDE this function so it only loads when a
+ * PDF is actually parsed — importing it at module top level would crash every
+ * serverless route that transitively imports the parser barrel.
  */
 export async function parsePdf(buffer: Buffer): Promise<ParseResult> {
   const warnings: ParseWarning[] = [];
   const blocks: ParsedBlock[] = [];
 
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getText();

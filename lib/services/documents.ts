@@ -5,16 +5,9 @@ import { chunkThemes, chunks, documents, interviews, segments, themes, waves } f
 import { audit } from "@/lib/audit";
 import { dispatchDocumentApproved, dispatchDocumentUploaded } from "@/lib/ingestion/dispatch";
 import { deleteDocumentData } from "@/lib/ingestion/pipeline";
-import { ForbiddenError, type SessionUser } from "@/lib/errors";
+import { DuplicateDocumentError, ForbiddenError, type SessionUser } from "@/lib/errors";
 import { getStorage } from "@/lib/storage";
 import type { SourceType } from "@/lib/parsers";
-
-export class DuplicateDocumentError extends Error {
-  status = 409 as const;
-  constructor(public existingId: string) {
-    super("An identical file already exists in this wave");
-  }
-}
 
 function requireResearcher(user: SessionUser): void {
   if (user.role === "viewer") throw new ForbiddenError("Requires researcher role");
