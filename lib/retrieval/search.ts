@@ -44,6 +44,8 @@ export interface RetrievedChunk {
     similarity: number | null;
     tsRank: number | null;
     rrfScore: number;
+    /** F4: score after permission-aware diversity/recency re-ranking */
+    rerankScore: number;
   };
 }
 
@@ -189,6 +191,7 @@ export async function searchChunks(params: {
         similarity: Number(row.score),
         tsRank: null,
         rrfScore: 1 / (RETRIEVAL.rrfK + i + 1),
+ rerankScore: 0,
       },
     });
   });
@@ -210,14 +213,35 @@ export async function searchChunks(params: {
           similarity: null,
           tsRank: Number(row.score),
           rrfScore: 1 / (RETRIEVAL.rrfK + i + 1),
+ rerankScore: 0,
         },
       });
     }
   });
 
-  const ranked = [...fused.values()].sort((a, b) => b.match.rrfScore - a.match.rrfScore);
-  const top = ranked.slice(0, finalK);
-  const topRrfScore = top[0]?.match.rrfScore ?? null;
+  const topRrfScore = [...fused.values()].reduce((m, v) => Math.max(m, v.match.rrfScore), 0) || null;
+
+  // F4 — permission-aware re-ranking. The fused set already passed the ACL in
+  // SQL, so this only ever reorders content the user is allowed to see. Over
+  // that accessible set we boost usefulness: interview/document diversity (so a
+  // single voice can't dominate the top results) and mild recency.
+  const latestPeriod = [...fused.values()].reduce((m, v) => Math.max(m, v.row.year * 12 + v.row.month), 0);
+  const seenSource = new Map<string, number>();
+  const reranked = [...fused.values()]
+    .sort((a, b) => b.match.rrfScore - a.match.rrfScore)
+    .map((entry) => {
+      const key = entry.row.interview_ref ?? entry.row.document_id;
+      const repeats = seenSource.get(key) ?? 0;
+      seenSource.set(key, repeats + 1);
+      const diversityFactor = 1 / (1 + repeats * 0.5); // 1st: 1.0, 2nd: 0.67, 3rd: 0.5…
+      const ageMonths = Math.max(0, latestPeriod - (entry.row.year * 12 + entry.row.month));
+      const recencyFactor = 1 + Math.max(0, 0.08 - ageMonths * 0.001); // small, capped
+      const rerankScore = entry.match.rrfScore * diversityFactor * recencyFactor;
+      return { ...entry, match: { ...entry.match, rerankScore } };
+    })
+    .sort((a, b) => b.match.rerankScore - a.match.rerankScore);
+
+  const top = reranked.slice(0, finalK);
   const weakEvidence = topRrfScore === null || topRrfScore < RETRIEVAL.weakEvidenceThreshold;
 
   const result: SearchResult = {

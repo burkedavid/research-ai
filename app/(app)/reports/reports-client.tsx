@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import type { FilterOptions } from "@/lib/services/filter-options";
 import { PageHeader } from "@/components/page-header";
+import { ResearchLoader } from "@/components/research-loader";
 
 interface Citation {
   n: number;
@@ -194,7 +195,16 @@ export function ReportsClient({ options }: { options: FilterOptions }) {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {busy && <p className="mt-3 text-sm text-muted-foreground">Retrieving evidence and drafting each section…</p>}
+      {busy && (
+        <ResearchLoader
+          messages={[
+            "Retrieving evidence for each section…",
+            "Reading the transcripts and reports…",
+            "Drafting the narrative…",
+            "Attaching citations…",
+          ]}
+        />
+      )}
 
       {draft && (
         <div className="mt-6">

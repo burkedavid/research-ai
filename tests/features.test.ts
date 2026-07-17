@@ -158,6 +158,22 @@ describe("theme taxonomy (§A5.2)", () => {
   });
 });
 
+describe("permission-aware re-ranking (F4)", () => {
+  it("re-ranks over the ACL-filtered set, sorted by rerankScore, favouring interview diversity", async () => {
+    const user = await researcher();
+    const { searchChunks } = await import("@/lib/retrieval/search");
+    const result = await searchChunks({ query: "cutting back energy bills money worries", user, k: 8 });
+
+    expect(result.chunks.length).toBeGreaterThan(1);
+    expect(result.chunks.every((c) => typeof c.match.rerankScore === "number" && c.match.rerankScore > 0)).toBe(true);
+    for (let i = 1; i < result.chunks.length; i++) {
+      expect(result.chunks[i - 1].match.rerankScore).toBeGreaterThanOrEqual(result.chunks[i].match.rerankScore);
+    }
+    const distinctInterviews = new Set(result.chunks.map((c) => c.interviewRef).filter(Boolean));
+    expect(distinctInterviews.size).toBeGreaterThan(1);
+  });
+});
+
 describe("shareable read-only links (F3)", () => {
   it("creates a public share token, reads it without auth, and revokes it", async () => {
     const user = await researcher();

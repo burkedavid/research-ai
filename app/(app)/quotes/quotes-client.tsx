@@ -4,6 +4,7 @@ import { useState } from "react";
 import { EMPTY_FILTERS, FilterSidebar, toApiFilters, type FilterState } from "@/components/filter-sidebar";
 import { PageHeader } from "@/components/page-header";
 import { SentimentBadge } from "@/components/sentiment-badge";
+import { ResearchLoader } from "@/components/research-loader";
 import type { FilterOptions } from "@/lib/services/filter-options";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -191,7 +192,13 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
           </Alert>
         )}
 
-        {quotes === null && (
+        {busy && (
+          <ResearchLoader
+            messages={["Searching for verbatim…", "Matching consumer voice…", "Ranking the strongest quotes…"]}
+          />
+        )}
+
+        {!busy && quotes === null && (
           <div className="flex flex-1 items-center justify-center py-10">
             <div className="w-full max-w-xl text-center">
               <p className="text-sm font-medium text-muted-foreground">Popular verbatim searches…</p>

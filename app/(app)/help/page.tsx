@@ -207,7 +207,8 @@ export default async function HelpPage() {
             </li>
             <li>
               <strong>&ldquo;Why these results&rdquo;</strong> shows how each passage was found — semantic match,
-              keyword match or both, with scores.
+              keyword match or both, its fusion score, and its final <em>ranked</em> score after re-ranking (which
+              favours a spread of interviews and recency across the results you are permitted to see).
             </li>
             <li>
               <strong>Quote verification</strong> — quoted spans are machine-checked against their sources; a red flag

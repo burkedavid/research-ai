@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { FilterOptions } from "@/lib/services/filter-options";
 import { PageHeader } from "@/components/page-header";
+import { ResearchLoader } from "@/components/research-loader";
 
 interface SideState {
   label: string;
@@ -181,6 +182,16 @@ export function CompareClient({ options }: { options: FilterOptions }) {
         <Alert variant="destructive" className="mt-3">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {busy && (
+        <ResearchLoader
+          messages={[
+            "Retrieving both periods…",
+            "Reading the evidence side by side…",
+            "Finding what's new, growing and fading…",
+          ]}
+        />
       )}
 
       {result && (

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EMPTY_FILTERS, FilterSidebar, toApiFilters, type FilterState } from "@/components/filter-sidebar";
 import { PageHeader } from "@/components/page-header";
+import { ResearchLoader } from "@/components/research-loader";
 import type { FilterOptions } from "@/lib/services/filter-options";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ interface ExplainRow {
   similarity: number | null;
   tsRank: number | null;
   rrfScore: number;
+  rerankScore: number;
 }
 
 interface Explainability {
@@ -416,7 +418,18 @@ export function AskClient({
                     </Alert>
                   )}
                   <AnswerText text={turn.answer} citations={turn.citations} />
-                  {turn.streaming && <p className="text-xs text-slate-400">thinking…</p>}
+                  {turn.streaming && turn.answer.length === 0 && (
+                    <ResearchLoader
+                      messages={[
+                        "Searching the archive…",
+                        "Retrieving the strongest evidence…",
+                        "Grounding the answer in the sources…",
+                      ]}
+                    />
+                  )}
+                  {turn.streaming && turn.answer.length > 0 && (
+                    <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-brand-400 align-middle" aria-hidden />
+                  )}
                   {turn.error && <p className="text-sm text-red-600">{turn.error}</p>}
 
                   {turn.verification && !turn.verification.allQuotesVerified && (
@@ -470,6 +483,7 @@ export function AskClient({
                             <TableHead className="h-8 px-2">Semantic</TableHead>
                             <TableHead className="h-8 px-2">Keyword</TableHead>
                             <TableHead className="h-8 px-2">RRF</TableHead>
+                            <TableHead className="h-8 px-2">Ranked</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -487,6 +501,7 @@ export function AskClient({
                                 {r.keywordRank ? `#${r.keywordRank} (${r.tsRank?.toFixed(3)})` : "—"}
                               </TableCell>
                               <TableCell className="px-2 py-1">{r.rrfScore.toFixed(4)}</TableCell>
+                              <TableCell className="px-2 py-1 font-medium text-brand-900">{r.rerankScore.toFixed(4)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
