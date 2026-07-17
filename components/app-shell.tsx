@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signOut } from "@/auth";
 import { BrandMark } from "@/components/brand-mark";
 import { MobileNav } from "@/components/mobile-nav";
+import { UserMenu } from "@/components/user-menu";
 import type { SessionUser } from "@/lib/errors";
 
 const NAV = [
@@ -21,11 +22,17 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
   }
 
   const items = [...NAV, ...(user.role === "admin" ? [{ href: "/admin", label: "Administration" }] : [])];
-  const userMeta = `${user.role}${user.transcriptAccess ? " · transcript access" : ""}`;
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
-      <MobileNav items={items} userName={user.name} userMeta={userMeta} signOutAction={doSignOut} />
+      <MobileNav
+        items={items}
+        userName={user.name}
+        userRole={user.role}
+        transcriptAccess={user.transcriptAccess}
+        userEmail={user.email}
+        signOutAction={doSignOut}
+      />
 
       <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-white lg:flex">
         {/* the mark's palette as a signature accent line */}
@@ -50,21 +57,27 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
             </Link>
           ))}
         </nav>
-        <div className="border-t border-border px-4 py-3">
-          <p className="truncate text-sm font-medium text-brand-900">{user.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{userMeta}</p>
-          <form action={doSignOut}>
-            <button type="submit" className="mt-2 text-xs text-muted-foreground underline hover:text-brand-900">
-              Sign out
-            </button>
-          </form>
-        </div>
       </aside>
 
-      {/* bottom padding on small screens so the fixed tab bar never covers content */}
-      <main className="min-w-0 flex-1 pb-16 lg:pb-0">
-        <div className="mx-auto w-full max-w-7xl">{children}</div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-0">
+        {/* desktop top bar: product name (left) + user profile menu (right) */}
+        <header className="hidden items-center gap-3 border-b border-border bg-white px-6 py-2.5 lg:flex">
+          <p className="text-sm font-semibold text-brand-900">Consumer Sentiment Intelligence Hub</p>
+          <div className="ml-auto">
+            <UserMenu
+              name={user.name}
+              role={user.role}
+              transcriptAccess={user.transcriptAccess}
+              email={user.email}
+              signOutAction={doSignOut}
+            />
+          </div>
+        </header>
+
+        <main className="min-w-0 flex-1">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

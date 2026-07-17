@@ -36,6 +36,13 @@ export const viewport: Viewport = {
   themeColor: "#1e2a6b",
   // let content flow under the iOS status bar / into the safe-area insets
   viewportFit: "cover",
+  // Lock the scale so the installed PWA behaves like a native app: prevents
+  // iOS auto-zoom on input focus and stray pinch-zoom leaving the layout
+  // stranded (same fix as the golf app).
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

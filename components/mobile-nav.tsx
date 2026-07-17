@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
+import { UserMenu } from "@/components/user-menu";
 
 interface NavItem {
   href: string;
@@ -74,12 +75,16 @@ const PRIMARY_TABS = [
 export function MobileNav({
   items,
   userName,
-  userMeta,
+  userRole,
+  transcriptAccess,
+  userEmail,
   signOutAction,
 }: {
   items: NavItem[];
   userName: string;
-  userMeta: string;
+  userRole: string;
+  transcriptAccess: boolean;
+  userEmail?: string | null;
   signOutAction: () => Promise<void>;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
@@ -91,7 +96,9 @@ export function MobileNav({
   }, [pathname]);
 
   const primaryHrefs = new Set<string>(PRIMARY_TABS.map((t) => t.href));
-  const moreItems = items.filter((i) => !primaryHrefs.has(i.href));
+  const helpHref = items.find((i) => i.href === "/help")?.href ?? null;
+  // Help lives in the top-right; everything else not in the tab bar goes to "More"
+  const moreItems = items.filter((i) => !primaryHrefs.has(i.href) && i.href !== "/help");
   const moreActive = moreItems.some((i) => pathname.startsWith(i.href));
 
   return (
@@ -100,10 +107,36 @@ export function MobileNav({
       <div className="sticky top-0 z-40 lg:hidden">
         <div className="h-1 w-full bg-[linear-gradient(90deg,#ff8155,#ffcc39,#52e838,#49ffef,#4aa8ff,#cd4dff)]" />
         <div className="flex items-center gap-2 border-b border-border bg-white px-4 py-2">
-          <Link href="/" className="flex items-center gap-2">
-            <BrandMark size={28} />
-            <span className="text-sm font-bold text-brand-900">Sentiment Research</span>
+          <Link href="/" className="flex min-w-0 items-center gap-2">
+            <BrandMark size={30} />
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate text-sm font-bold text-brand-900">Sentiment Research</span>
+              <span className="block truncate text-[10px] text-muted-foreground">Consumer Sentiment Hub</span>
+            </span>
           </Link>
+          <div className="ml-auto flex items-center gap-1">
+            {helpHref && (
+              <Link
+                href={helpHref}
+                aria-label="Help"
+                className={`flex size-9 items-center justify-center rounded-full transition active:bg-brand-50 ${pathname.startsWith(helpHref) ? "text-brand-900" : "text-slate-400"}`}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-5" aria-hidden>
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <path d="M12 17h.01" />
+                </svg>
+              </Link>
+            )}
+            <UserMenu
+              name={userName}
+              role={userRole}
+              transcriptAccess={transcriptAccess}
+              email={userEmail}
+              signOutAction={signOutAction}
+              compact
+            />
+          </div>
         </div>
       </div>
 
@@ -127,17 +160,6 @@ export function MobileNav({
                 {item.label}
               </Link>
             ))}
-            <div className="mt-2 flex items-center justify-between border-t border-border px-4 pb-1 pt-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-brand-900">{userName}</p>
-                <p className="truncate text-xs text-muted-foreground">{userMeta}</p>
-              </div>
-              <form action={signOutAction}>
-                <button type="submit" className="text-xs text-muted-foreground underline hover:text-brand-900">
-                  Sign out
-                </button>
-              </form>
-            </div>
           </div>
         </>
       )}
