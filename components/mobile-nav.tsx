@@ -143,7 +143,7 @@ export function MobileNav({
       )}
 
       {/* bottom tab bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div className="grid grid-cols-5">
           {PRIMARY_TABS.map((tab) => {
             const active = pathname.startsWith(tab.href);
@@ -151,11 +151,14 @@ export function MobileNav({
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${active ? "text-brand-900" : "text-slate-400"}`}
+                aria-current={active ? "page" : undefined}
+                className={`relative flex touch-manipulation flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors duration-100 active:bg-brand-50 ${active ? "text-brand-900" : "text-slate-400 active:text-brand-900"}`}
               >
-                <Icon name={tab.icon} className="size-5" />
+                <span
+                  className={`absolute inset-x-3 top-0 h-0.5 rounded-full transition-opacity ${active ? "bg-[linear-gradient(90deg,#ff8155,#52e838,#7263ff)] opacity-100" : "opacity-0"}`}
+                />
+                <Icon name={tab.icon} className={`size-5 transition-transform duration-100 active:scale-90 ${active ? "scale-110" : ""}`} />
                 {tab.label}
-                <span className={`h-0.5 w-6 rounded-full ${active ? "bg-[linear-gradient(90deg,#ff8155,#52e838,#7263ff)]" : "bg-transparent"}`} />
               </Link>
             );
           })}
@@ -163,11 +166,13 @@ export function MobileNav({
             type="button"
             onClick={() => setMoreOpen(!moreOpen)}
             aria-expanded={moreOpen}
-            className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${moreActive || moreOpen ? "text-brand-900" : "text-slate-400"}`}
+            className={`relative flex touch-manipulation flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors duration-100 active:bg-brand-50 ${moreActive || moreOpen ? "text-brand-900" : "text-slate-400 active:text-brand-900"}`}
           >
-            <Icon name="more" className="size-5" />
+            <span
+              className={`absolute inset-x-3 top-0 h-0.5 rounded-full transition-opacity ${moreActive || moreOpen ? "bg-[linear-gradient(90deg,#ff8155,#52e838,#7263ff)] opacity-100" : "opacity-0"}`}
+            />
+            <Icon name="more" className={`size-5 transition-transform duration-100 active:scale-90 ${moreActive || moreOpen ? "scale-110" : ""}`} />
             More
-            <span className={`h-0.5 w-6 rounded-full ${moreActive ? "bg-[linear-gradient(90deg,#ff8155,#52e838,#7263ff)]" : "bg-transparent"}`} />
           </button>
         </div>
       </nav>

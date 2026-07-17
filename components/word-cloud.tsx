@@ -27,9 +27,10 @@ export function WordCloud({ words, width = 560, height = 320 }: { words: Word[];
   useEffect(() => {
     if (words.length === 0) return;
     const max = Math.max(...words.map((w) => w.count));
+    // lay out within a margin so edge words aren't clipped by the viewBox
     const layout = cloud()
-      .size([width, height])
-      .words(words.map((w) => ({ text: w.word, size: 14 + (w.count / max) * 42 })))
+      .size([width - 48, height - 32])
+      .words(words.map((w) => ({ text: w.word, size: 13 + (w.count / max) * 34 })))
       .padding(3)
       .rotate(() => 0)
       .font("sans-serif")
@@ -76,7 +77,15 @@ export function WordCloud({ words, width = 560, height = 320 }: { words: Word[];
 
   return (
     <div>
-      <svg ref={svgRef} width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Word cloud of consumer language">
+      {/* viewBox + w-full lets the fixed-layout cloud scale down on small screens */}
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Word cloud of consumer language"
+        className="h-auto w-full max-w-full"
+      >
         <g transform={`translate(${width / 2},${height / 2})`}>
           {placed.map((w, i) => (
             <text

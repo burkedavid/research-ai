@@ -123,6 +123,7 @@ export function FilterSidebar({
   onChange: (next: FilterState) => void;
   showEvidenceTypes?: boolean;
 }) {
+  const [panelOpen, setPanelOpen] = useState(false);
   const active = [
     ...value.waveIds.map((id) => ({ label: options.waves.find((w) => w.id === id)?.label ?? "wave", clear: () => onChange({ ...value, waveIds: value.waveIds.filter((v) => v !== id) }) })),
     ...value.segmentIds.map((id) => ({ label: options.segments.find((s) => s.id === id)?.name ?? "segment", clear: () => onChange({ ...value, segmentIds: value.segmentIds.filter((v) => v !== id) }) })),
@@ -139,8 +140,23 @@ export function FilterSidebar({
 
   return (
     <aside className="w-full lg:w-64 lg:shrink-0">
-      <Card className="gap-0 py-4 lg:sticky lg:top-4">
-        <CardHeader className="px-4 pb-3">
+      <Card className="gap-0 py-0 lg:sticky lg:top-4 lg:py-4">
+        {/* mobile: a compact toggle so filters don't fill the top of the page.
+            desktop: a static header, panel always open. */}
+        <button
+          type="button"
+          onClick={() => setPanelOpen((o) => !o)}
+          aria-expanded={panelOpen}
+          className="flex w-full items-center gap-2 px-4 py-3 text-left lg:hidden"
+        >
+          <span className="text-sm font-semibold">Filters</span>
+          {active.length > 0 && (
+            <span className="rounded-full bg-brand-900 px-1.5 text-[11px] font-medium text-white">{active.length}</span>
+          )}
+          <span className={`ml-auto text-muted-foreground transition-transform ${panelOpen ? "rotate-90" : ""}`}>›</span>
+        </button>
+
+        <CardHeader className="hidden px-4 pb-3 lg:block">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm">Filters</CardTitle>
             {active.length > 0 && (
@@ -171,7 +187,26 @@ export function FilterSidebar({
           )}
         </CardHeader>
 
-        <CardContent className="px-4 pt-0">
+        <CardContent className={`px-4 pb-4 pt-0 lg:pb-0 lg:block ${panelOpen ? "block" : "hidden"}`}>
+          {/* active-filter chips inside the collapsible on mobile so scope stays visible */}
+          {active.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-1.5 lg:hidden">
+              {active.map((chip, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={chip.clear}
+                  className="group flex items-center gap-1 rounded-full bg-brand-900 py-0.5 pl-2.5 pr-1.5 text-[11px] font-medium text-white"
+                >
+                  {chip.label}
+                  <span className="rounded-full px-0.5 text-brand-200">✕</span>
+                </button>
+              ))}
+              <button type="button" onClick={() => onChange(EMPTY_FILTERS)} className="text-xs text-muted-foreground underline">
+                clear all
+              </button>
+            </div>
+          )}
           <Section title="Date range" accent={ACCENTS.date} count={value.dateRange ? 1 : 0}>
             <div className="space-y-1.5">
               <label className="block">

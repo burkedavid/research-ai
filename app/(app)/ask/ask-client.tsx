@@ -132,7 +132,7 @@ export function AskClient({
   const [busy, setBusy] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [recents, setRecents] = useState<string[]>([]);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const latestTurnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/prompt-templates")
@@ -147,9 +147,14 @@ export function AskClient({
     }
   }, []);
 
+  // Scroll the NEW question to the top of the view once when it's asked — not
+  // on every streamed token (that yanks the page past the answer). Keyed on the
+  // count so streaming updates don't retrigger it.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [turns]);
+    if (turns.length > 0) {
+      latestTurnRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [turns.length]);
 
   function rememberQuestion(q: string) {
     setRecents((prev) => {
@@ -394,7 +399,7 @@ export function AskClient({
         {/* conversation */}
         <div className="mt-6 space-y-6">
           {turns.map((turn, i) => (
-            <div key={i}>
+            <div key={i} ref={i === turns.length - 1 ? latestTurnRef : undefined} className="scroll-mt-4">
               <p className="text-sm font-medium text-slate-900">You: {turn.question}</p>
               <Card className="mt-2 gap-0">
                 <CardContent className="space-y-3">
@@ -515,7 +520,6 @@ export function AskClient({
               </Card>
             </div>
           ))}
-          <div ref={bottomRef} />
         </div>
       </div>
     </div>

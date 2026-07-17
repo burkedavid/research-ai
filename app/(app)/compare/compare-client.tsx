@@ -171,9 +171,9 @@ export function CompareClient({ options }: { options: FilterOptions }) {
         <SidePicker side={sideB} setSide={setSideB} options={options} title="Period B (later / comparison)" />
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <Input value={question} onChange={(e) => setQuestion(e.target.value)} className="flex-1" />
-        <Button type="button" onClick={run} disabled={!ready || busy}>
+        <Button type="button" onClick={run} disabled={!ready || busy} className="sm:w-auto">
           {busy ? "Comparing…" : "Compare"}
         </Button>
       </div>
