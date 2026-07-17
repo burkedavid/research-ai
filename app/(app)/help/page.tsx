@@ -148,6 +148,10 @@ export default async function HelpPage() {
               ranges or segments, framed as <em>new, growing, continuing and fading</em>.
             </li>
             <li>
+              <Link href="/trends" className="font-medium underline">Trends</Link> — how themes move across the whole
+              archive (new / growing / continuing / fading), with a chart and an AI cross-wave synthesis.
+            </li>
+            <li>
               <Link href="/segments" className="font-medium underline">Explore Segments</Link> — per-segment themes,
               consumer language, trends and recent verbatim.
             </li>

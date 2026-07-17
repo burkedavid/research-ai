@@ -8,6 +8,7 @@ import type { SessionUser } from "@/lib/errors";
 const NAV = [
   { href: "/ask", label: "Ask the Archive" },
   { href: "/compare", label: "Compare Periods" },
+  { href: "/trends", label: "Trends" },
   { href: "/segments", label: "Explore Segments" },
   { href: "/quotes", label: "Find Quotes" },
   { href: "/reports", label: "Create Report" },

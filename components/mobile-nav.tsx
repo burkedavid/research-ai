@@ -149,13 +149,16 @@ export function MobileNav({
             onClick={() => setMoreOpen(false)}
             className="fixed inset-0 z-40 bg-brand-950/30 lg:hidden"
           />
-          <div className="fixed inset-x-0 bottom-14 z-50 rounded-t-2xl border-t border-border bg-white px-2 pb-2 pt-3 shadow-2xl lg:hidden">
+          {/* sits directly above the bottom tab bar (incl. safe-area) and
+              scrolls if the list is taller than the available space, so every
+              item is always reachable on short screens */}
+          <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-50 max-h-[60vh] overflow-y-auto rounded-t-2xl border-t border-border bg-white px-2 pb-3 pt-3 shadow-2xl lg:hidden">
             <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-border" />
             {moreItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block rounded-md px-4 py-2.5 text-sm font-medium ${pathname.startsWith(item.href) ? "bg-brand-50 text-brand-900" : "text-slate-600 hover:bg-brand-50 hover:text-brand-900"}`}
+                className={`block rounded-md px-4 py-3 text-sm font-medium ${pathname.startsWith(item.href) ? "bg-brand-50 text-brand-900" : "text-slate-600 hover:bg-brand-50 hover:text-brand-900"}`}
               >
                 {item.label}
               </Link>

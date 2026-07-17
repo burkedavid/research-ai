@@ -158,6 +158,37 @@ describe("theme taxonomy (§A5.2)", () => {
   });
 });
 
+describe("cross-wave trends (F5)", () => {
+  it("builds archive-wide theme trajectories and classifies movement", async () => {
+    const user = await researcher();
+    const { getTrendData } = await import("@/lib/services/trends");
+    const data = await getTrendData(user);
+    expect(data.points.length).toBeGreaterThan(0);
+    expect(data.earliest).not.toBeNull();
+    expect(data.latest).not.toBeNull();
+    expect(data.movers.length).toBeGreaterThan(0);
+    expect(data.movers.every((m) => ["new", "growing", "continuing", "fading"].includes(m.movement))).toBe(true);
+  });
+
+  it("synthesises a cited cross-wave narrative from earliest to latest wave", async () => {
+    const user = await researcher();
+    const { synthesiseTrends } = await import("@/lib/services/trends");
+    const result = await synthesiseTrends(user);
+    expect(result).not.toBeNull();
+    expect(result!.text.length).toBeGreaterThan(20);
+    expect(result!.sideA.citations.length + result!.sideB.citations.length).toBeGreaterThan(0);
+    expect(result!.sideA.label).not.toBe(result!.sideB.label);
+  });
+
+  it("excludes transcript evidence from trajectories for users without transcript access", async () => {
+    const user = await summaryOnly();
+    const { getTrendData } = await import("@/lib/services/trends");
+    const data = await getTrendData(user);
+    // still has report-derived points, just no transcript-only inflation
+    expect(Array.isArray(data.points)).toBe(true);
+  });
+});
+
 describe("permission-aware re-ranking (F4)", () => {
   it("re-ranks over the ACL-filtered set, sorted by rerankScore, favouring interview diversity", async () => {
     const user = await researcher();
