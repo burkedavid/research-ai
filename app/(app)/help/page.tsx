@@ -29,7 +29,7 @@ const QUICKSTART = [
   { n: 1, accent: "bg-sr-orange", title: "Ask a question", text: "Open Ask the Archive and type a question the way you'd ask a colleague. Scope it with the filters if you want a specific period, segment or theme." },
   { n: 2, accent: "bg-sr-yellow", title: "Check the evidence", text: "Read the confidence banner, click a [1] citation to see the exact source passage, and open “why these results” if you want to see how retrieval chose them." },
   { n: 3, accent: "bg-sr-green", title: "Collect verbatim", text: "Use Find Quotes for word-for-word consumer voice. Shortlist the strong ones and copy or export them with their source references attached." },
-  { n: 4, accent: "bg-sr-blue", title: "Draft and export", text: "Use Create Report for a grounded first draft, edit every section, then export to Word with the citations appendix included." },
+  { n: 4, accent: "bg-sr-blue", title: "Draft and export", text: "Use Create Report for a grounded first draft — a template, or a deep-research briefing from your own question — edit every section, then export to Word with the citations appendix, or save and share it." },
 ];
 
 const FAQ: { q: string; a: React.ReactNode }[] = [
@@ -38,8 +38,16 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: "Deliberately. Nothing becomes searchable until a person has checked the extraction — correct speaker roles, segments and themes, and resolve any flagged personal data. Approve the document and it is indexed within moments.",
   },
   {
-    q: "Why can't I see any quotes?",
-    a: "Direct verbatim comes from raw transcripts, which need the separate transcript-access permission. If Find Quotes says your account can't access transcripts, ask an administrator.",
+    q: "Can I see quotes without transcript access?",
+    a: "Yes — verbatim that reports attribute inline as “(Segment, Region)” is available to everyone in Find Quotes, shown with the report's exact date. Raw interview transcript verbatim is the only thing that needs the separate transcript-access permission; ask an administrator if you need it.",
+  },
+  {
+    q: "What's a deep-research briefing?",
+    a: "In Create Report, pick “Deep-research briefing” and type a research question. The system runs several scoped retrievals — overview, main themes, segment and region differences, change over time, and supporting verbatim — and assembles one cited, editable draft you can export to Word or save and share.",
+  },
+  {
+    q: "How do I find the most common words about a topic?",
+    a: "On Trends, use the “Most common words & phrases” panel: choose a period and, optionally, a topic (e.g. “the economy”) to see the words and phrases consumers use most across reports in that window.",
   },
   {
     q: "Why does an answer say “treat with caution”?",
@@ -140,6 +148,72 @@ export default async function HelpPage() {
       </Card>
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <SectionCard accent="bg-sr-magenta" title="What you can do — every question, and where">
+          <p>
+            Each capability the hub is built for, mapped to exactly where you do it. The examples are typed the way
+            you&apos;d actually ask.
+          </p>
+          <p className="text-xs text-muted-foreground sm:hidden">Swipe the table sideways to see the steps.</p>
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <Table className="min-w-[680px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">You want to…</TableHead>
+                  <TableHead className="whitespace-nowrap">Where</TableHead>
+                  <TableHead>How</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell>Search reports by theme or topic</TableCell>
+                  <TableCell><Link href="/ask" className="underline">Ask the Archive</Link></TableCell>
+                  <TableCell>Type the topic; narrow with the Theme, Segment, Region or Date filters.</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Verbatim about a topic — <em>&ldquo;Show verbatim comments about COVID&rdquo;</em>, house buying, the economy, finances</TableCell>
+                  <TableCell><Link href="/quotes" className="underline">Find Quotes</Link></TableCell>
+                  <TableCell>Type the topic (e.g. <em>COVID</em>, <em>house buying</em>). Every result is word-for-word, tagged with segment, region and the report&apos;s date.</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Most common words/phrases in a period — <em>&ldquo;…from Jan 2026 to July 2026 to describe the economy&rdquo;</em></TableCell>
+                  <TableCell><Link href="/trends" className="underline">Trends</Link> → Most common words &amp; phrases</TableCell>
+                  <TableCell>Set From Jan 2026, To Jul 2026, topic <em>the economy</em>, then Analyse.</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Insights across different time periods</TableCell>
+                  <TableCell><Link href="/ask" className="underline">Ask</Link> / <Link href="/trends" className="underline">Trends</Link></TableCell>
+                  <TableCell>Ask with a Date-range filter, or read theme trajectories across every wave on Trends.</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Compare trends &amp; language over time — <em>&ldquo;Compare discussion of the economy across different time periods&rdquo;</em></TableCell>
+                  <TableCell><Link href="/compare" className="underline">Compare Periods</Link></TableCell>
+                  <TableCell>Set Period A and Period B, ask about the economy; pair with the words &amp; phrases panel to compare the actual language.</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>How people feel about a topic — <em>&ldquo;How are people feeling about finances?&rdquo;</em></TableCell>
+                  <TableCell><Link href="/ask" className="underline">Ask the Archive</Link></TableCell>
+                  <TableCell>Ask it directly; passages carry sentiment badges (positive/negative/neutral/mixed) and you can filter by sentiment.</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Supporting verbatim for an insight — <em>&ldquo;Show the supporting verbatim for this insight&rdquo;</em></TableCell>
+                  <TableCell>Any answer or report</TableCell>
+                  <TableCell>Every claim carries a <strong>[1]</strong> citation — click it to open the exact source passage. Or search the theme in Find Quotes.</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Store every report in one searchable place, no personal memory needed</TableCell>
+                  <TableCell><Link href="/library" className="underline">Library</Link> + <Link href="/ask" className="underline">Ask</Link></TableCell>
+                  <TableCell>All reports live in the Library and become searchable once approved; anyone can retrieve the insight later without remembering which report it was in.</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>A full written briefing on a question</TableCell>
+                  <TableCell><Link href="/reports" className="underline">Create Report</Link> → Deep-research briefing</TableCell>
+                  <TableCell>Type the question; get a multi-section cited draft to edit, export to Word, or save and share.</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </SectionCard>
+
         <SectionCard accent="bg-sr-orange" title="What each area is for">
           <ul className="list-disc space-y-2 pl-5">
             <li>
@@ -152,7 +226,8 @@ export default async function HelpPage() {
             </li>
             <li>
               <Link href="/trends" className="font-medium underline">Trends</Link> — how themes move across the whole
-              archive (new / growing / continuing / fading), with a chart and an AI cross-wave synthesis.
+              archive (new / growing / continuing / fading), with a chart, an AI cross-wave synthesis, and a{" "}
+              <strong>most common words &amp; phrases</strong> panel for any period and topic.
             </li>
             <li>
               <Link href="/segments" className="font-medium underline">Explore Segments</Link> — per-segment themes,
@@ -169,7 +244,8 @@ export default async function HelpPage() {
             </li>
             <li>
               <Link href="/reports" className="font-medium underline">Create Report</Link> — grounded first drafts
-              (monthly summary, theme deep dive, what-has-changed) with Word export.
+              (monthly summary, theme deep dive, what-has-changed) plus a <strong>deep-research briefing</strong> from
+              any free-text question, all with Word export.
             </li>
             <li>
               <Link href="/library" className="font-medium underline">Library</Link> — waves, uploads, the review

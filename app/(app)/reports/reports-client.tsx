@@ -41,18 +41,20 @@ const TEMPLATES = [
   { value: "monthly_summary", label: "Monthly summary", needs: "wave" },
   { value: "what_changed", label: "What has changed?", needs: "wave" },
   { value: "theme_deep_dive", label: "Theme deep dive", needs: "theme" },
+  { value: "deep_briefing", label: "Deep-research briefing", needs: "question" },
 ] as const;
 
 export function ReportsClient({ options }: { options: FilterOptions }) {
   const [template, setTemplate] = useState<(typeof TEMPLATES)[number]["value"]>("monthly_summary");
   const [waveId, setWaveId] = useState("");
   const [themeId, setThemeId] = useState("");
+  const [question, setQuestion] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const needs = TEMPLATES.find((t) => t.value === template)?.needs;
-  const ready = needs === "wave" ? Boolean(waveId) : Boolean(themeId);
+  const ready = needs === "wave" ? Boolean(waveId) : needs === "theme" ? Boolean(themeId) : question.trim().length > 4;
 
   async function generate() {
     setBusy(true);
@@ -66,6 +68,7 @@ export function ReportsClient({ options }: { options: FilterOptions }) {
         waveId: needs === "wave" ? waveId : undefined,
         themeId: needs === "theme" ? themeId : undefined,
         themeName: needs === "theme" ? options.themes.find((t) => t.id === themeId)?.name : undefined,
+        question: needs === "question" ? question : undefined,
       }),
     });
     setBusy(false);
@@ -183,6 +186,22 @@ export function ReportsClient({ options }: { options: FilterOptions }) {
                   </option>
                 ))}
               </select>
+            </label>
+          )}
+          {needs === "question" && (
+            <label className="w-full text-sm">
+              <span className="block text-xs text-muted-foreground">Research question</span>
+              <Textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                rows={2}
+                placeholder="e.g. How has consumer confidence in the UK economy shifted, and what is driving it?"
+                className="mt-1 text-sm"
+              />
+              <span className="mt-1 block text-[11px] text-muted-foreground">
+                Builds a multi-section, cited briefing — overview, themes, segment &amp; region differences, change over
+                time, and supporting verbatim.
+              </span>
             </label>
           )}
           <Button type="button" onClick={generate} disabled={!ready || busy}>

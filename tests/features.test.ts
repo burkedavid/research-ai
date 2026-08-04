@@ -500,3 +500,30 @@ describe("word & phrase frequency (item 4)", () => {
     expect(res.phrases.some((p) => p.term.startsWith("the "))).toBe(false);
   });
 });
+
+describe("deep-research structured briefing (F6)", () => {
+  it("builds a multi-section cited briefing from a free-text question", async () => {
+    const user = await researcher();
+    const draft = await generateReport({
+      user,
+      template: "deep_briefing",
+      question: "How are consumers feeling about the cost of living and the UK economy?",
+    });
+    expect(draft.template).toBe("deep_briefing");
+    expect(draft.title.toLowerCase()).toContain("briefing");
+    // the fixed research lenses
+    const headings = draft.sections.map((s) => s.heading);
+    expect(headings).toContain("Overview");
+    expect(headings).toContain("Main themes");
+    expect(headings).toContain("Supporting consumer voice");
+    // at least one section is grounded with real citations
+    expect(draft.sections.some((s) => s.citations.length > 0)).toBe(true);
+    // provenance is recorded like any other report
+    expect(draft.provenance.promptVersion).toBeTruthy();
+  });
+
+  it("requires a question", async () => {
+    const user = await researcher();
+    await expect(generateReport({ user, template: "deep_briefing" })).rejects.toThrow(/question/i);
+  });
+});

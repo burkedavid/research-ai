@@ -14,7 +14,7 @@ import { buildCitations, verifyAnswer, type Citation } from "@/lib/retrieval/ver
 import { comparePeriods } from "./compare";
 import { estimateCostGbp } from "./ask";
 
-export type ReportTemplate = "monthly_summary" | "theme_deep_dive" | "what_changed";
+export type ReportTemplate = "monthly_summary" | "theme_deep_dive" | "what_changed" | "deep_briefing";
 
 export interface ReportSection {
   heading: string;
@@ -102,6 +102,10 @@ export async function generateReport(params: {
   waveId?: string;
   themeId?: string;
   themeName?: string;
+  /** free-text research question — required for deep_briefing (F6) */
+  question?: string;
+  /** optional retrieval scope for deep_briefing (date range, segments, etc.) */
+  filters?: SearchFilters;
   ip?: string | null;
 }): Promise<ReportDraft> {
   const { user, template } = params;
@@ -115,7 +119,7 @@ export async function generateReport(params: {
   await audit({
     userId: user.id,
     action: "search",
-    detail: { feature: "report", template, queryHash: createHash("sha256").update(template + (params.waveId ?? "") + (params.themeId ?? "")).digest("hex").slice(0, 32) },
+    detail: { feature: "report", template, queryHash: createHash("sha256").update(template + (params.waveId ?? "") + (params.themeId ?? "") + (params.question ?? "")).digest("hex").slice(0, 32) },
     ip: params.ip,
   });
 
@@ -151,6 +155,32 @@ export async function generateReport(params: {
         heading: spec.heading,
         query: spec.query,
         filters: { themeIds: [params.themeId] },
+      });
+      sections.push(section);
+      totalIn += inputTokens;
+      totalOut += outputTokens;
+      embeddingModel = em;
+    }
+  } else if (template === "deep_briefing") {
+    // Deep-research structured briefing (F6): decompose a free-text research
+    // question into fixed research lenses, retrieve + synthesise each with
+    // citations, over an optional shared scope. Reuses the cited-section engine.
+    const question = params.question?.trim();
+    if (!question) throw new Error("deep_briefing requires a question");
+    title = `Deep-research briefing — ${question.length > 90 ? `${question.slice(0, 90)}…` : question}`;
+    const lenses: { heading: string; query: string }[] = [
+      { heading: "Overview", query: question },
+      { heading: "Main themes", query: `${question} — the main themes and recurring points consumers raise` },
+      { heading: "Differences by segment and region", query: `${question} — how views differ by consumer segment and region` },
+      { heading: "How it has changed over time", query: `${question} — how this has changed across waves over time` },
+      { heading: "Supporting consumer voice", query: `${question} — consumer experiences, feelings and verbatim` },
+    ];
+    for (const spec of lenses) {
+      const { section, inputTokens, outputTokens, embeddingModel: em } = await generateSection({
+        user,
+        heading: spec.heading,
+        query: spec.query,
+        filters: params.filters ?? {},
       });
       sections.push(section);
       totalIn += inputTokens;

@@ -1,13 +1,16 @@
 import { z } from "zod";
 import { clientIp, handleApi } from "@/lib/api";
+import { filtersSchema } from "@/lib/filters-schema";
 import { generateReport } from "@/lib/services/reports";
 import { requireUser } from "@/lib/session";
 
 const generateSchema = z.object({
-  template: z.enum(["monthly_summary", "theme_deep_dive", "what_changed"]),
+  template: z.enum(["monthly_summary", "theme_deep_dive", "what_changed", "deep_briefing"]),
   waveId: z.string().uuid().optional(),
   themeId: z.string().uuid().optional(),
   themeName: z.string().max(200).optional(),
+  question: z.string().max(500).optional(),
+  filters: filtersSchema,
 });
 
 export async function POST(req: Request) {
