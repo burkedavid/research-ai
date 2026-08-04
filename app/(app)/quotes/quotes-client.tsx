@@ -151,6 +151,7 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
 
       <div className="flex min-h-[calc(100vh-4rem)] min-w-0 flex-1 flex-col">
         <PageHeader
+          icon="quotes"
           title="Find Quotes"
           subtitle="Direct consumer verbatim only, ranked by relevance, with speaker and source references."
         />
