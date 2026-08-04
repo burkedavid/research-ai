@@ -33,6 +33,8 @@ export interface RetrievedChunk {
   waveNumber: number;
   month: number;
   year: number;
+  /** the report's exact fieldwork date (item 2/5), day-level; null if unknown */
+  reportDate: string | null;
   segmentName: string | null;
   interviewRef: string | null;
   sentiment: string | null;
@@ -74,6 +76,7 @@ interface LegRow {
   wave_number: number;
   month: number;
   year: number;
+  report_date: string | null;
   segment_name: string | null;
   interview_ref: string | null;
   sentiment: string | null;
@@ -131,7 +134,7 @@ function buildWhere(filters: SearchFilters, user: SessionUser): SQL {
 const SELECT_FIELDS = sql`
   c.id AS chunk_id, c.content, c.evidence_type, c.speaker_role,
   c.section_path, c.page_ref, c.sentiment, c.region,
-  d.id AS document_id, d.filename, d.source_type,
+  d.id AS document_id, d.filename, d.source_type, d.report_date,
   w.id AS wave_id, w.wave_number, w.month, w.year,
   s.name AS segment_name, i.external_ref AS interview_ref
 `;
@@ -265,6 +268,7 @@ export async function searchChunks(params: {
       waveNumber: Number(row.wave_number),
       month: Number(row.month),
       year: Number(row.year),
+      reportDate: row.report_date,
       segmentName: row.segment_name,
       interviewRef: row.interview_ref,
       sentiment: row.sentiment,

@@ -415,3 +415,43 @@ describe("reports-only verbatim access (item 8)", () => {
     expect(seen.quotes.some((q) => q.quote.includes("grandchildren visit"))).toBe(true);
   });
 });
+
+describe("day-level report date on quotes (item 5)", () => {
+  it("threads the report's exact filename date onto its retrieved quotes", async () => {
+    const { Document, Packer, Paragraph, TextRun } = await import("docx");
+    const { findQuotes } = await import("@/lib/services/quotes");
+    const { approveDocument } = await import("@/lib/services/documents");
+    const { getProjectId, uploadBufferAutoDated } = await import("./helpers");
+    const reporter = await researcher();
+    const projectId = await getProjectId();
+
+    const report = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({ children: [new TextRun({ text: "Spending", bold: true })] }),
+            new Paragraph({ children: [new TextRun("“We have cut right back on takeaways to keep the weekly budget under control.”")] }),
+            new Paragraph({ children: [new TextRun("(Constrained Parents, Midlands)")] }),
+          ],
+        },
+      ],
+    });
+    const buffer = Buffer.from(await Packer.toBuffer(report));
+    const { documentId, reportDate } = await uploadBufferAutoDated({
+      user: reporter,
+      autoDateProjectId: projectId,
+      buffer,
+      filename: "Consumer Sentiment - Summary ReportF 05.05.25 GPT.docx",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      sourceType: "report",
+    });
+    expect(reportDate).toBe("2025-05-05");
+    await approveDocument(reporter, documentId);
+
+    const hit = await findQuotes({ user: reporter, query: "cut back takeaways weekly budget", collapseDuplicates: false });
+    const found = hit.quotes.find((q) => q.quote.includes("cut right back on takeaways"));
+    expect(found).toBeDefined();
+    expect(found?.reportDate).toBe("2025-05-05");
+    expect(found?.region).toBe("Midlands");
+  });
+});

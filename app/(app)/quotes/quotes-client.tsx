@@ -41,11 +41,22 @@ interface Quote {
   interviewRef: string | null;
   segmentName: string | null;
   wave: string;
+  reportDate: string | null;
   filename: string;
   sentiment: string | null;
   region: string | null;
   matchedSemantic: boolean;
   matchedKeyword: boolean;
+}
+
+/** "2026-07-01" → "1 Jul 2026"; falls back to the wave month label. */
+function whenLabel(q: { reportDate: string | null; wave: string }): string {
+  if (q.reportDate && /^\d{4}-\d{2}-\d{2}$/.test(q.reportDate)) {
+    const [y, m, d] = q.reportDate.split("-").map(Number);
+    const months = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${d} ${months[m]} ${y}`;
+  }
+  return q.wave;
 }
 
 export function QuotesClient({ options, hasTranscriptAccess }: { options: FilterOptions; hasTranscriptAccess: boolean }) {
@@ -235,7 +246,7 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
                     <span>
                       {quote.interviewRef ?? "consumer"}
                       {quote.segmentName ? ` · ${quote.segmentName}` : ""}
-                      {quote.region ? ` · ${quote.region}` : ""} · {quote.wave}
+                      {quote.region ? ` · ${quote.region}` : ""} · {whenLabel(quote)}
                     </span>
                     <a
                       href={`/library/documents/${quote.documentId}?chunk=${quote.chunkId}`}

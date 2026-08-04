@@ -61,6 +61,7 @@ export default async function DocumentPage({
           <h1 className="text-xl font-semibold text-brand-900">{document.filename}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {document.sourceType.replace(/_/g, " ")} · v{document.version} · status: {document.status}
+            {document.reportDate ? ` · report date: ${document.reportDate}` : ""}
           </p>
         </div>
         <a

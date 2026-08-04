@@ -13,6 +13,8 @@ export interface QuoteResult {
   interviewRef: string | null;
   segmentName: string | null;
   wave: string;
+  /** exact day-level report date (item 5), if known */
+  reportDate: string | null;
   filename: string;
   sentiment: string | null;
   region: string | null;
@@ -84,6 +86,7 @@ export async function findQuotes(params: {
           interviewRef: chunk.interviewRef,
           segmentName: chunk.segmentName,
           wave: `${chunk.year}-${String(chunk.month).padStart(2, "0")}`,
+          reportDate: chunk.reportDate,
           filename: chunk.filename,
           sentiment: chunk.sentiment,
           region: chunk.region,
@@ -102,6 +105,7 @@ export async function findQuotes(params: {
           interviewRef: chunk.interviewRef,
           segmentName: chunk.segmentName,
           wave: `${chunk.year}-${String(chunk.month).padStart(2, "0")}`,
+          reportDate: chunk.reportDate,
           filename: chunk.filename,
           sentiment: chunk.sentiment,
           region: chunk.region,
