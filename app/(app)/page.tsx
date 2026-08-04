@@ -51,7 +51,7 @@ export default async function HomePage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="py-6">
         <h1 className="text-3xl font-semibold tracking-tight text-brand-900">
           Consumer Sentiment Intelligence Hub
@@ -73,13 +73,18 @@ export default async function HomePage() {
         ))}
       </div>
 
-      <div className="mt-8 grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {ACTIONS.map((a) => (
           <Link key={a.href} href={a.href} className="group">
             <Card className="h-full overflow-hidden pt-0 transition group-hover:border-brand-600 group-hover:shadow-md">
               <div className={`h-1 w-full ${a.accent}`} />
               <CardHeader className="pt-5">
-                <CardTitle className="text-brand-900">{a.title}</CardTitle>
+                <CardTitle className="flex items-center justify-between text-brand-900">
+                  {a.title}
+                  <span className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-600" aria-hidden>
+                    →
+                  </span>
+                </CardTitle>
                 <CardDescription className="leading-5">{a.desc}</CardDescription>
               </CardHeader>
             </Card>

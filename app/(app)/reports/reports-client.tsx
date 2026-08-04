@@ -225,6 +225,25 @@ export function ReportsClient({ options }: { options: FilterOptions }) {
         />
       )}
 
+      {!draft && !busy && (
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {[
+            { t: "Monthly summary", d: "A full month's findings across mood, cost of living, energy, food, banks and outlook — one wave.", a: "bg-sr-orange" },
+            { t: "What has changed?", d: "This wave against the previous one and the same month a year ago, framed as new / growing / continuing / fading.", a: "bg-sr-yellow" },
+            { t: "Theme deep dive", d: "One theme over time — how it has evolved, where segments differ, and the consumer voice behind it.", a: "bg-sr-green" },
+            { t: "Deep-research briefing", d: "Your own question, answered as a multi-section cited briefing — overview, themes, segment & region differences, change over time and verbatim.", a: "bg-sr-blue" },
+          ].map((x) => (
+            <Card key={x.t} className="overflow-hidden pt-0">
+              <div className={`h-1 w-full ${x.a}`} />
+              <CardContent className="pt-4">
+                <p className="text-sm font-medium text-brand-900">{x.t}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{x.d}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {draft && (
         <div className="mt-6">
           <div className="flex items-center justify-between">

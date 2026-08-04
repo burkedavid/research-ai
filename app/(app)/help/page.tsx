@@ -390,7 +390,7 @@ export default async function HelpPage() {
             <CardTitle className="text-brand-900">Who can do what</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table className="text-sm">
+            <Table className="min-w-[520px] text-sm">
               <TableHeader>
                 <TableRow>
                   <TableHead>Capability</TableHead>

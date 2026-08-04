@@ -83,7 +83,7 @@ export default async function LibraryPage() {
           </div>
         )}
         <Card className="mt-4 py-0">
-          <Table>
+          <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Wave</TableHead>

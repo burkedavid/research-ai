@@ -474,7 +474,7 @@ export function AskClient({
                       <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-slate-500">
                         Why these results ({turn.explainability.candidateCount} candidates)
                       </summary>
-                      <Table className="mt-2 text-xs">
+                      <Table className="mt-2 min-w-[560px] text-xs">
                         <TableHeader>
                           <TableRow>
                             <TableHead className="h-8 px-2">#</TableHead>

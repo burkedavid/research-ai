@@ -153,7 +153,7 @@ export function AdminClient({
           </Card>
 
           <Card className="mt-4">
-            <Table>
+            <Table className="min-w-[640px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
@@ -315,7 +315,7 @@ export function AdminClient({
 
       {tab === "audit" && (
         <Card className="mt-4">
-          <Table className="text-xs">
+          <Table className="min-w-[560px] text-xs">
             <TableHeader>
               <TableRow>
                 <TableHead>When</TableHead>

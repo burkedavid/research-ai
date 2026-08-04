@@ -65,7 +65,7 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
       {canEdit && <UploadForm waveId={wave.id} storageDriver={env.STORAGE_DRIVER} />}
 
       <Card className="mt-6 py-0">
-        <Table>
+        <Table className="min-w-[720px]">
           <TableHeader>
             <TableRow>
               <TableHead>File</TableHead>
