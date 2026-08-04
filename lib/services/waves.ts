@@ -40,6 +40,46 @@ export async function createWave(
   return wave;
 }
 
+/**
+ * Find or create the wave for a given project + month (item 2). Reports of any
+ * cadence within a month share one wave; the day-level date lives on the
+ * document. Wave number is assigned incrementally per project by chronology.
+ */
+export async function findOrCreateWave(
+  user: SessionUser,
+  params: { projectId: string; year: number; month: number },
+): Promise<string> {
+  if (user.role === "viewer") throw new ForbiddenError("Requires researcher role");
+  const [existing] = await db
+    .select({ id: waves.id })
+    .from(waves)
+    .where(and(eq(waves.projectId, params.projectId), eq(waves.year, params.year), eq(waves.month, params.month)));
+  if (existing) return existing.id;
+
+  // wave number = chronological rank among this project's waves
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(waves)
+    .where(
+      and(
+        eq(waves.projectId, params.projectId),
+        sql`(${waves.year} * 100 + ${waves.month}) < ${params.year * 100 + params.month}`,
+      ),
+    );
+  const [wave] = await db
+    .insert(waves)
+    .values({ projectId: params.projectId, year: params.year, month: params.month, waveNumber: count + 1 })
+    .onConflictDoNothing({ target: [waves.projectId, waves.year, waves.month] })
+    .returning({ id: waves.id });
+  if (wave) return wave.id;
+  // race: another upload created it first
+  const [row] = await db
+    .select({ id: waves.id })
+    .from(waves)
+    .where(and(eq(waves.projectId, params.projectId), eq(waves.year, params.year), eq(waves.month, params.month)));
+  return row.id;
+}
+
 /** Monthly workflow (§B6): wave is confirmed once every document is reviewed. */
 export async function confirmWave(user: SessionUser, waveId: string) {
   if (user.role === "viewer") throw new ForbiddenError("Requires researcher role");

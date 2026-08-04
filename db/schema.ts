@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -156,6 +157,10 @@ export const documents = pgTable(
     version: integer("version").notNull().default(1),
     supersedes: uuid("supersedes"),
     sourceType: sourceTypeEnum("source_type").notNull(),
+    // the report's actual fieldwork date, parsed from the filename (item 2);
+    // day-level, so twice-weekly early reports keep their distinct date even
+    // when they share a monthly wave
+    reportDate: date("report_date"),
     status: documentStatusEnum("status").notNull().default("uploaded"),
     error: text("error"),
     parseWarnings: jsonb("parse_warnings"),

@@ -69,6 +69,7 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
           <TableHeader>
             <TableRow>
               <TableHead>File</TableHead>
+              <TableHead>Report date</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Version</TableHead>
               <TableHead>Status</TableHead>
@@ -78,7 +79,7 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
           <TableBody>
             {documents.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   No documents uploaded to this wave yet.
                 </TableCell>
               </TableRow>
@@ -93,6 +94,7 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
                     {d.filename}
                   </Link>
                 </TableCell>
+                <TableCell className="text-muted-foreground">{d.reportDate ?? "—"}</TableCell>
                 <TableCell className="text-muted-foreground">{d.sourceType.replace(/_/g, " ")}</TableCell>
                 <TableCell className="text-muted-foreground">v{d.version}</TableCell>
                 <TableCell>

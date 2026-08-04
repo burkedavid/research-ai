@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/page-header";
 import { getTrendData } from "@/lib/services/trends";
 import { requireUser } from "@/lib/session";
 import { TrendsClient } from "./trends-client";

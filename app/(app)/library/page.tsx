@@ -7,7 +7,9 @@ import { requireUser } from "@/lib/session";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { env } from "@/lib/env";
 import { CreateWaveForm } from "./create-wave-form";
+import { BulkUploadForm } from "./bulk-upload-form";
 import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +74,13 @@ export default async function LibraryPage() {
           <h2 className="text-lg font-medium text-foreground">Waves</h2>
         </div>
         {user.role !== "viewer" && projectRows.length > 0 && (
-          <CreateWaveForm projects={projectRows.map((p) => ({ id: p.id, name: p.name }))} />
+          <div className="flex flex-wrap gap-2">
+            <CreateWaveForm projects={projectRows.map((p) => ({ id: p.id, name: p.name }))} />
+            <BulkUploadForm
+              projects={projectRows.map((p) => ({ id: p.id, name: p.name }))}
+              storageDriver={env.STORAGE_DRIVER}
+            />
+          </div>
         )}
         <Card className="mt-4 py-0">
           <Table>

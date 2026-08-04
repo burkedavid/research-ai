@@ -158,6 +158,48 @@ describe("theme taxonomy (§A5.2)", () => {
   });
 });
 
+describe("auto-date report ingest (item 2)", () => {
+  it("routes a report to the wave for its filename month and stores the report date", async () => {
+    const user = await researcher();
+    const { getProjectId, uploadBufferAutoDated } = await import("./helpers");
+    const projectId = await getProjectId();
+
+    const { documentId, waveId, reportDate } = await uploadBufferAutoDated({
+      user,
+      autoDateProjectId: projectId,
+      buffer: Buffer.from("MOD: How are you?\n\nR: Fine, thanks, feeling steady.", "utf-8"),
+      filename: "Consumer Sentiment - Summary ReportF 04.09.24 GPT.txt",
+      mimeType: "text/plain",
+      sourceType: "report",
+    });
+    expect(reportDate).toBe("2024-09-04");
+
+    const [wave] = await db.select().from(waves).where(eq(waves.id, waveId));
+    expect(wave.year).toBe(2024);
+    expect(wave.month).toBe(9);
+
+    const [doc] = await db.select().from(documents).where(eq(documents.id, documentId));
+    expect(doc.reportDate).toBe("2024-09-04");
+    expect(doc.waveId).toBe(waveId);
+  });
+
+  it("rejects a file whose name has no readable date", async () => {
+    const user = await researcher();
+    const { getProjectId, uploadBufferAutoDated } = await import("./helpers");
+    const projectId = await getProjectId();
+    await expect(
+      uploadBufferAutoDated({
+        user,
+        autoDateProjectId: projectId,
+        buffer: Buffer.from("MOD: q\n\nR: a", "utf-8"),
+        filename: "undated report final.txt",
+        mimeType: "text/plain",
+        sourceType: "report",
+      }),
+    ).rejects.toThrow(/date from the filename/i);
+  });
+});
+
 describe("cross-wave trends (F5)", () => {
   it("builds archive-wide theme trajectories and classifies movement", async () => {
     const user = await researcher();

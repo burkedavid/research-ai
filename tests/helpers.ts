@@ -70,6 +70,29 @@ export async function uploadBuffer(params: {
   return documentId;
 }
 
+/** Store a buffer and register it via the auto-date path (item 2). */
+export async function uploadBufferAutoDated(params: {
+  user: SessionUser;
+  autoDateProjectId: string;
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+  sourceType: SourceType;
+}): Promise<{ documentId: string; waveId: string; reportDate: string | null }> {
+  const pathname = `uploads/${randomUUID()}/${params.filename}`;
+  const stored = await getStorage().put(pathname, params.buffer, params.mimeType);
+  const { documentId, waveId, reportDate } = await registerUpload({
+    user: params.user,
+    autoDateProjectId: params.autoDateProjectId,
+    blobUrl: stored.url,
+    blobPathname: stored.pathname,
+    filename: params.filename,
+    mimeType: params.mimeType,
+    sourceType: params.sourceType,
+  });
+  return { documentId, waveId, reportDate };
+}
+
 /**
  * Idempotently ingest + approve the whole synthetic corpus (3 waves).
  * Safe to call from any test file in any order: duplicate uploads are

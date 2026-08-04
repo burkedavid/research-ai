@@ -5,6 +5,8 @@ import { chunkThemes, chunks, documents, interviews, segments, themes, waves } f
 import { audit } from "@/lib/audit";
 import { dispatchDocumentApproved, dispatchDocumentUploaded } from "@/lib/ingestion/dispatch";
 import { deleteDocumentData } from "@/lib/ingestion/pipeline";
+import { parseReportDate, toISODate } from "@/lib/ingestion/filename-date";
+import { findOrCreateWave } from "@/lib/services/waves";
 import { DuplicateDocumentError, ForbiddenError, type SessionUser } from "@/lib/errors";
 import { getStorage } from "@/lib/storage";
 import type { SourceType } from "@/lib/parsers";
@@ -20,16 +22,33 @@ function requireResearcher(user: SessionUser): void {
  */
 export async function registerUpload(params: {
   user: SessionUser;
-  waveId: string;
+  /** target wave; ignored when autoDateProjectId is set and the filename dates */
+  waveId?: string;
+  /** item 2: derive the wave from the filename date under this project */
+  autoDateProjectId?: string;
   blobUrl: string;
   blobPathname: string;
   filename: string;
   mimeType: string;
   sourceType: SourceType;
   ip?: string | null;
-}): Promise<{ documentId: string; version: number }> {
+}): Promise<{ documentId: string; version: number; waveId: string; reportDate: string | null }> {
   const { user } = params;
   requireResearcher(user);
+
+  // item 2: resolve the wave from the filename's report date when auto-dating
+  let waveId = params.waveId;
+  let reportDate: string | null = null;
+  if (params.autoDateProjectId) {
+    const parts = parseReportDate(params.filename);
+    if (!parts) {
+      await getStorage().delete({ url: params.blobUrl, pathname: params.blobPathname });
+      throw new Error(`Could not read a date from the filename "${params.filename}". Rename it to include the report date (e.g. 01.07.26) or pick a wave.`);
+    }
+    reportDate = toISODate(parts);
+    waveId = await findOrCreateWave(user, { projectId: params.autoDateProjectId, year: parts.year, month: parts.month });
+  }
+  if (!waveId) throw new Error("No wave specified");
 
   const storage = getStorage();
   const buffer = await storage.get({ url: params.blobUrl, pathname: params.blobPathname });
@@ -41,7 +60,7 @@ export async function registerUpload(params: {
     .from(documents)
     .where(
       and(
-        eq(documents.waveId, params.waveId),
+        eq(documents.waveId, waveId),
         eq(documents.sha256, sha256),
         ne(documents.status, "deleted"),
       ),
@@ -57,7 +76,7 @@ export async function registerUpload(params: {
     .from(documents)
     .where(
       and(
-        eq(documents.waveId, params.waveId),
+        eq(documents.waveId, waveId),
         eq(documents.filename, params.filename),
         ne(documents.status, "deleted"),
       ),
@@ -68,7 +87,7 @@ export async function registerUpload(params: {
   const [doc] = await db
     .insert(documents)
     .values({
-      waveId: params.waveId,
+      waveId,
       blobUrl: params.blobUrl,
       blobPathname: params.blobPathname,
       filename: params.filename,
@@ -77,6 +96,7 @@ export async function registerUpload(params: {
       version: previous ? previous.version + 1 : 1,
       supersedes: previous?.id ?? null,
       sourceType: params.sourceType,
+      reportDate,
       status: "uploaded",
       uploadedBy: user.id,
     })
@@ -87,12 +107,12 @@ export async function registerUpload(params: {
     action: "upload",
     entityType: "document",
     entityId: doc.id,
-    detail: { filename: params.filename, waveId: params.waveId, sourceType: params.sourceType, version: doc.version },
+    detail: { filename: params.filename, waveId, sourceType: params.sourceType, version: doc.version, reportDate },
     ip: params.ip,
   });
 
   await dispatchDocumentUploaded(doc.id);
-  return { documentId: doc.id, version: doc.version };
+  return { documentId: doc.id, version: doc.version, waveId, reportDate };
 }
 
 /**

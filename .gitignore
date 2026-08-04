@@ -49,3 +49,7 @@ playwright-report/
 .e2e-fixtures/
 1.jpg
 1.png
+
+# real client reports must never be committed (public repo)
+*.docx
+Consumer Sentiment*.docx
