@@ -148,6 +148,27 @@ const FROM_JOINS = sql`
 `;
 
 /**
+ * Fetch raw chunk contents matching filters, with the SAME ACL and metadata
+ * filters as retrieval (item 4). Unranked — for aggregate analysis (word/phrase
+ * frequency over a period), not relevance search. Capped by `limit`.
+ */
+export async function fetchChunkContents(params: {
+  filters?: SearchFilters;
+  user: SessionUser;
+  limit?: number;
+}): Promise<string[]> {
+  const filters = params.filters ?? {};
+  const where = buildWhere(filters, params.user);
+  const rows = (await db.execute(sql`
+    SELECT c.content
+    ${FROM_JOINS}
+    WHERE ${where}
+    LIMIT ${params.limit ?? 5000}
+  `)) as unknown as { content: string }[];
+  return rows.map((r) => r.content);
+}
+
+/**
  * The one retrieval function (§B7): hybrid vector + keyword search with
  * metadata filters and ACL enforced inside the SQL, fused with RRF in
  * application code so per-result provenance is available for free.

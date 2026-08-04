@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { ResearchLoader } from "@/components/research-loader";
 import { ThemeTimeline } from "@/components/theme-timeline";
+import { WordFrequencyPanel } from "@/components/word-frequency-panel";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,10 @@ export function TrendsClient({ data, canSynthesise }: { data: TrendData; canSynt
         title="Trends"
         subtitle="How themes have moved across the whole archive — new, growing, continuing and fading — with an AI cross-wave synthesis."
       />
+
+      <div className="mt-4">
+        <WordFrequencyPanel />
+      </div>
 
       {data.points.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">No indexed evidence yet. Confirm a wave to see trends.</p>

@@ -455,3 +455,48 @@ describe("day-level report date on quotes (item 5)", () => {
     expect(found?.region).toBe("Midlands");
   });
 });
+
+describe("word & phrase frequency (item 4)", () => {
+  it("counts the most common words and phrases over reports in a period", async () => {
+    const { Document, Packer, Paragraph, TextRun } = await import("docx");
+    const { analyzeWordFrequency } = await import("@/lib/services/word-frequency");
+    const { approveDocument } = await import("@/lib/services/documents");
+    const { getProjectId, uploadBufferAutoDated } = await import("./helpers");
+    const reporter = await researcher();
+    const projectId = await getProjectId();
+
+    const report = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({ children: [new TextRun({ text: "Inflation outlook", bold: true })] }),
+            new Paragraph({ children: [new TextRun("Inflation remains the dominant worry. Rising inflation shapes every spending decision.")] }),
+            new Paragraph({ children: [new TextRun("Households mention inflation and the cost of living more than any other pressure.")] }),
+            new Paragraph({ children: [new TextRun("The cost of living crunch and inflation continue to bite across the board.")] }),
+          ],
+        },
+      ],
+    });
+    const buffer = Buffer.from(await Packer.toBuffer(report));
+    const { documentId } = await uploadBufferAutoDated({
+      user: reporter,
+      autoDateProjectId: projectId,
+      buffer,
+      filename: "Consumer Sentiment - Summary ReportF 03.03.23 GPT.docx",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      sourceType: "report",
+    });
+    await approveDocument(reporter, documentId);
+
+    // scoped to this report's month, reports only
+    const res = await analyzeWordFrequency({
+      user: reporter,
+      filters: { sourceTypes: ["report"], dateRange: { fromYear: 2023, fromMonth: 3, toYear: 2023, toMonth: 3 } },
+    });
+    expect(res.chunkCount).toBeGreaterThan(0);
+    expect(res.words.map((w) => w.term)).toContain("inflation");
+    // an internal-stopword phrase survives; a stopword-led fragment does not
+    expect(res.phrases.map((p) => p.term)).toContain("cost of living");
+    expect(res.phrases.some((p) => p.term.startsWith("the "))).toBe(false);
+  });
+});

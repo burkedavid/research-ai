@@ -180,17 +180,22 @@ describe("permission boundaries (§B9.9, acceptance criterion 7)", () => {
   it("a user without transcript access retrieves zero transcript evidence by any query", async () => {
     const user = await summaryOnly();
     const result = await searchChunks({ query: "heating grandchildren blanket energy", user, k: 24 });
+    // the ACL boundary is source_type: no raw transcript evidence, ever.
+    // (report-attributed direct quotes ARE allowed for this user — item 8.)
     expect(result.chunks.every((c) => c.sourceType !== "transcript")).toBe(true);
-    expect(result.chunks.every((c) => c.evidenceType !== "direct_quote")).toBe(true);
     const all = result.chunks.map((c) => c.content).join("\n");
     // the planted transcript-only verbatim must never leak
     expect(all).not.toContain("keeping the heating off until the grandchildren visit. I sit with a blanket");
   });
 
-  it("quote finder returns nothing for a user without transcript access", async () => {
+  it("quote finder returns report verbatim but no transcript verbatim without transcript access (item 8)", async () => {
     const user = await summaryOnly();
-    const { quotes } = await findQuotes({ user, query: "cutting back spending" });
-    expect(quotes).toEqual([]);
+    // a query that hits the planted transcript verbatim
+    const { quotes } = await findQuotes({ user, query: "heating off grandchildren blanket cutting back" });
+    // raw transcript verbatim must never leak…
+    expect(quotes.every((q) => !q.quote.includes("grandchildren visit"))).toBe(true);
+    // …and anything returned is report-derived (no interview reference)
+    expect(quotes.every((q) => q.interviewRef === null)).toBe(true);
   });
 
   it("the same query returns transcript evidence for an authorised researcher", async () => {

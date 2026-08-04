@@ -221,8 +221,25 @@ export default async function HelpPage() {
             segment and region. So even with reports only and no transcripts, those quotes appear in{" "}
             <Link href="/quotes" className="font-medium underline">Find Quotes</Link> and can be filtered by
             <strong> region</strong> (North, South, Midlands, Scotland, Wales, London…) alongside segment, theme and
-            date.
+            date. Report quotes show the report&apos;s <strong>exact fieldwork date</strong> (e.g. 1 Jul 2026), not just
+            the month. Because these come from reports rather than raw transcripts, <strong>everyone can search
+            them</strong> — a transcript-access account is only needed for raw interview verbatim.
           </p>
+        </SectionCard>
+
+        <SectionCard accent="bg-sr-blue" title="Most common words & phrases">
+          <p>
+            On <Link href="/trends" className="font-medium underline">Trends</Link>, the{" "}
+            <strong>Most common words &amp; phrases</strong> panel counts the language consumers use across reports in a
+            period. Set a <em>From</em> and <em>To</em> month, and optionally a <strong>topic</strong> to see the words
+            used to describe it — for example <em>the economy</em>, <em>house buying</em> or <em>COVID</em> between two
+            dates.
+          </p>
+          <ul className="list-disc space-y-2 pl-5">
+            <li>It reports both single words and short phrases (an internal joining word is kept, so <em>cost of living</em> shows as one phrase).</li>
+            <li>Everyday filler words are removed, and a word or phrase seen only once is not counted as &ldquo;common&rdquo;.</li>
+            <li>Counts run over reports only (not transcripts) and respect your access. A small base is flagged so you don&apos;t over-read a handful of passages.</li>
+          </ul>
         </SectionCard>
 
         <SectionCard accent="bg-sr-green" title="Reading the answers">
