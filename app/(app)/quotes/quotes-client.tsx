@@ -134,20 +134,6 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
     alert("Shortlist saved to your library outputs.");
   }
 
-  if (!hasTranscriptAccess) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <h1 className="text-2xl font-semibold text-slate-900">Find Quotes</h1>
-        <Alert className="mt-4 border-amber-200 bg-amber-50 text-amber-900">
-          <AlertDescription className="text-amber-900">
-            Direct verbatim comes from raw transcripts, which your account cannot access. Ask an administrator for
-            transcript access if you need quote retrieval.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 lg:flex-row lg:p-8">
       <FilterSidebar options={options} value={filters} onChange={setFilters} showEvidenceTypes={false} />
@@ -157,6 +143,15 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
           title="Find Quotes"
           subtitle="Direct consumer verbatim only, ranked by relevance, with speaker and source references."
         />
+
+        {!hasTranscriptAccess && (
+          <Alert className="mt-4 border-sky-200 bg-sky-50 text-sky-900">
+            <AlertDescription className="text-sky-900">
+              You&apos;re seeing verbatim quoted in reports (attributed by segment and region). Raw transcript
+              verbatim needs transcript access — ask an administrator if you need it.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={search} className="mt-4 flex gap-2">
           <Input

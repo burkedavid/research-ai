@@ -356,3 +356,62 @@ describe("AI auto-tag suggestions (F1)", () => {
     expect(doc.status).toBe("review");
   });
 });
+
+describe("reports-only verbatim access (item 8)", () => {
+  it("serves report-attributed quotes without transcript access, but never transcript verbatim", async () => {
+    const { Document, Packer, Paragraph, TextRun } = await import("docx");
+    const { findQuotes } = await import("@/lib/services/quotes");
+    const { approveDocument } = await import("@/lib/services/documents");
+    const reporter = await researcher();
+    const waveId = await createTestWave(CORPUS_WAVES[0]);
+
+    // a report that quotes a consumer inline, attributed by (Segment, Region)
+    const report = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({ children: [new TextRun({ text: "Health and the NHS", bold: true })] }),
+            new Paragraph({ children: [new TextRun("“The COVID booster rollout this winter reassured me more than anything about the NHS.”")] }),
+            new Paragraph({ children: [new TextRun("(Road to Retirement, North)")] }),
+          ],
+        },
+      ],
+    });
+    const buffer = Buffer.from(await Packer.toBuffer(report));
+    const docId = await uploadBuffer({
+      user: reporter,
+      waveId,
+      buffer,
+      filename: "item8-covid-report.docx",
+      mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      sourceType: "report",
+    }).catch((err) => {
+      if (String(err).includes("identical file")) return null;
+      throw err;
+    });
+    if (docId) await approveDocument(reporter, docId);
+
+    const summary = await summaryOnly();
+    expect(summary.transcriptAccess).toBe(false);
+
+    // (1) report-attributed verbatim IS retrievable without transcript access
+    const reportHit = await findQuotes({
+      user: summary,
+      query: "COVID booster rollout reassured NHS",
+      collapseDuplicates: false,
+    });
+    const found = reportHit.quotes.find((q) => q.quote.includes("COVID booster rollout this winter reassured"));
+    expect(found).toBeDefined();
+    expect(found?.segmentName).toBe("Road to Retirement");
+    expect(found?.region).toBe("North");
+
+    // (2) raw transcript verbatim stays hidden for the same user (ACL in SQL)
+    const phrase = "heating off until the grandchildren visit";
+    const hidden = await findQuotes({ user: summary, query: phrase, collapseDuplicates: false });
+    expect(hidden.quotes.some((q) => q.quote.includes("grandchildren visit"))).toBe(false);
+
+    // (3) a transcript-access user DOES see that transcript verbatim
+    const seen = await findQuotes({ user: reporter, query: phrase, collapseDuplicates: false });
+    expect(seen.quotes.some((q) => q.quote.includes("grandchildren visit"))).toBe(true);
+  });
+});
