@@ -195,10 +195,10 @@ export function ReviewEditor({ documentId, highlightChunkId, documentStatus, can
                     if (ok) patchLocal(chunk.id, { content: e.target.value });
                   }
                 }}
-                className="mt-2 font-mono text-xs leading-5"
+                className="mt-2 text-sm leading-6"
               />
             ) : (
-              <pre className="mt-2 whitespace-pre-wrap rounded-md bg-slate-50 p-2 font-mono text-xs leading-5">{chunk.content}</pre>
+              <p className="mt-2 whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-sm leading-6 text-slate-700">{chunk.content}</p>
             )}
 
             {chunk.piiSuggestions.length > 0 && canEdit && (

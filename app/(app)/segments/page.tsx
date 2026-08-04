@@ -14,7 +14,7 @@ export default async function SegmentsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Explore Segments" subtitle="Fresco segment profiles: themes, language and recent verbatim." />
+      <PageHeader icon="segments" title="Explore Segments" subtitle="Fresco segment profiles: themes, language and recent verbatim." />
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((s) => (
           <Link key={s.id} href={`/segments/${s.id}`} className="group">

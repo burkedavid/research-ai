@@ -102,7 +102,7 @@ export default async function HelpPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Help & how-to" subtitle="A researcher's guide to the Consumer Sentiment Intelligence Hub." />
+      <PageHeader icon="help" title="Help & how-to" subtitle="A researcher's guide to the Consumer Sentiment Intelligence Hub." />
 
       {/* quick start stepper */}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

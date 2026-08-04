@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FilterOptions } from "@/lib/services/filter-options";
 import { PageHeader } from "@/components/page-header";
@@ -146,46 +147,47 @@ export function ReportsClient({ options }: { options: FilterOptions }) {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
+        icon="reports"
         title="Create Report"
         subtitle="Grounded first drafts from templates — edit every section before export. AI-generated content is labelled and must be reviewed before client use."
       />
 
       <Card className="mt-4">
         <CardContent className="flex flex-wrap items-end gap-3">
-          <label className="text-sm">
-            <span className="block text-xs text-muted-foreground">Template</span>
-            <select value={template} onChange={(e) => setTemplate(e.target.value as typeof template)} className="mt-1 h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+          <label className="block w-full text-sm sm:w-52">
+            <span className="mb-1 block text-xs text-muted-foreground">Template</span>
+            <Select value={template} onChange={(e) => setTemplate(e.target.value as typeof template)}>
               {TEMPLATES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           {needs === "wave" && (
-            <label className="text-sm">
-              <span className="block text-xs text-muted-foreground">Wave</span>
-              <select value={waveId} onChange={(e) => setWaveId(e.target.value)} className="mt-1 h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+            <label className="block w-full text-sm sm:w-52">
+              <span className="mb-1 block text-xs text-muted-foreground">Wave</span>
+              <Select value={waveId} onChange={(e) => setWaveId(e.target.value)}>
                 <option value="">Choose…</option>
                 {options.waves.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           )}
           {needs === "theme" && (
-            <label className="text-sm">
-              <span className="block text-xs text-muted-foreground">Theme</span>
-              <select value={themeId} onChange={(e) => setThemeId(e.target.value)} className="mt-1 h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+            <label className="block w-full text-sm sm:w-52">
+              <span className="mb-1 block text-xs text-muted-foreground">Theme</span>
+              <Select value={themeId} onChange={(e) => setThemeId(e.target.value)}>
                 <option value="">Choose…</option>
                 {options.themes.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           )}
           {needs === "question" && (

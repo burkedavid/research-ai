@@ -100,7 +100,7 @@ export function AdminClient({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Administration" subtitle="Users, taxonomy, audit, usage and retention." />
+      <PageHeader icon="admin" title="Administration" subtitle="Users, taxonomy, audit, usage and retention." />
       <div className="mt-4 flex flex-wrap gap-1 border-b border-slate-200">
         {(["users", "themes", "audit", "usage", "retention"] as Tab[]).map((t) => (
           <button

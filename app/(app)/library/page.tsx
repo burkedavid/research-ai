@@ -22,7 +22,7 @@ export default async function LibraryPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Library" subtitle="Waves, documents, upload and the review queue." />
+      <PageHeader icon="library" title="Library" subtitle="Waves, documents, upload and the review queue." />
       <p className="text-sm text-muted-foreground">
         <Link href="/library/outputs" className="underline underline-offset-4 hover:text-foreground">
           Saved outputs →

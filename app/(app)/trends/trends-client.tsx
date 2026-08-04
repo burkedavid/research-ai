@@ -58,6 +58,7 @@ export function TrendsClient({ data, canSynthesise }: { data: TrendData; canSynt
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
+        icon="trends"
         title="Trends"
         subtitle="How themes have moved across the whole archive — new, growing, continuing and fading — with an AI cross-wave synthesis."
       />

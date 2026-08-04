@@ -80,13 +80,31 @@ const BASIS_STYLE: Record<string, string> = {
 };
 
 /** suggested questions as inviting category cards (not floating pills) */
+/** Professional line icons for the suggested-question topics (no emoji). */
+const TOPIC_PATHS: Record<string, React.ReactNode> = {
+  trends: <><path d="M3 3v18h18" /><path d="M7 15l3.5-4 3 2.5L21 6" /></>,
+  bank: <><path d="M3 10l9-6 9 6" /><path d="M4 10v9" /><path d="M20 10v9" /><path d="M8 10v9" /><path d="M12 10v9" /><path d="M16 10v9" /><path d="M3 21h18" /></>,
+  coins: <><ellipse cx="8" cy="7" rx="5" ry="2.5" /><path d="M3 7v5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V7" /><path d="M11 15.5c.7 1 3 1.8 5.5 1.8 2.8 0 5-1.1 5-2.5v-5" /><path d="M11 12c.7 1 3 1.8 5.5 1.8" /></>,
+  energy: <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />,
+  optimism: <><circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><path d="M9 9h.01" /><path d="M15 9h.01" /></>,
+  trust: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></>,
+};
+
+function TopicIcon({ name, className }: { name: string; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      {TOPIC_PATHS[name]}
+    </svg>
+  );
+}
+
 const SUGGESTED_CARDS = [
-  { icon: "📈", category: "Trends", question: "How has confidence changed between 2022 and 2026?", accent: "bg-sr-blue" },
-  { icon: "🏦", category: "Banking", question: "Compare attitudes to banks before and after Covid", accent: "bg-sr-purple" },
-  { icon: "💷", category: "Cost of living", question: "What do consumers say about cutting back?", accent: "bg-sr-orange" },
-  { icon: "⚡", category: "Energy", question: "What were the biggest concerns during the energy crisis?", accent: "bg-sr-yellow" },
-  { icon: "🙂", category: "Optimism", question: "How have Rising Metropolitans talked about optimism since March 2020?", accent: "bg-sr-green" },
-  { icon: "🤝", category: "Trust", question: "Which segments talk most about trust and fairness?", accent: "bg-sr-cyan" },
+  { icon: "trends", tint: "bg-sr-blue/10 text-sky-600", category: "Trends", question: "How has confidence changed between 2022 and 2026?", accent: "bg-sr-blue" },
+  { icon: "bank", tint: "bg-sr-purple/10 text-purple-600", category: "Banking", question: "Compare attitudes to banks before and after Covid", accent: "bg-sr-purple" },
+  { icon: "coins", tint: "bg-sr-orange/10 text-orange-600", category: "Cost of living", question: "What do consumers say about cutting back?", accent: "bg-sr-orange" },
+  { icon: "energy", tint: "bg-sr-yellow/10 text-amber-600", category: "Energy", question: "What were the biggest concerns during the energy crisis?", accent: "bg-sr-yellow" },
+  { icon: "optimism", tint: "bg-sr-green/10 text-green-600", category: "Optimism", question: "How have Rising Metropolitans talked about optimism since March 2020?", accent: "bg-sr-green" },
+  { icon: "trust", tint: "bg-sr-cyan/10 text-teal-600", category: "Trust", question: "Which segments talk most about trust and fairness?", accent: "bg-sr-cyan" },
 ];
 
 const RECENTS_KEY = "sr-recent-questions";
@@ -274,6 +292,7 @@ export function AskClient({
 
       <div className="min-w-0 flex-1">
         <PageHeader
+          icon="ask"
           title="Ask the Archive"
           subtitle={`Search approved research evidence across ${archiveStats.waves} waves and ${archiveStats.passages.toLocaleString()} indexed passages — every claim cited.`}
         />
@@ -367,11 +386,13 @@ export function AskClient({
                 >
                   <div className={`h-1 w-full ${card.accent}`} />
                   <div className="p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <span className="mr-1.5">{card.icon}</span>
-                      {card.category}
-                    </p>
-                    <p className="mt-1.5 text-sm leading-5 text-foreground group-hover:text-brand-900">{card.question}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`flex size-7 items-center justify-center rounded-lg ${card.tint}`}>
+                        <TopicIcon name={card.icon} className="size-4" />
+                      </span>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.category}</p>
+                    </div>
+                    <p className="mt-2 text-sm leading-5 text-foreground group-hover:text-brand-900">{card.question}</p>
                   </div>
                 </button>
               ))}

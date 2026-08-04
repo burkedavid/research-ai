@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CsvExportButton } from "@/components/csv-export-button";
+import { NavIcon } from "@/components/nav-icons";
 import { ThemeTimeline } from "@/components/theme-timeline";
 import { WordCloud } from "@/components/word-cloud";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,10 @@ export default async function SegmentProfilePage({ params }: { params: Promise<{
           </CardHeader>
           <CardContent>
             {profile.themeFrequencies.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No indexed evidence for this segment yet.</p>
+              <div className="flex flex-col items-center py-6 text-center">
+                <NavIcon name="segments" className="size-6 text-slate-300" />
+                <p className="mt-2 text-sm text-muted-foreground">No indexed evidence for this segment yet.</p>
+              </div>
             ) : (
               <ul className="space-y-2">
                 {profile.themeFrequencies.map((t) => (
@@ -92,7 +96,10 @@ export default async function SegmentProfilePage({ params }: { params: Promise<{
             {!user.transcriptAccess ? (
               <p className="text-sm text-amber-800">Verbatim requires transcript access.</p>
             ) : profile.verbatim.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No transcript evidence indexed for this segment yet.</p>
+              <div className="flex flex-col items-center py-6 text-center">
+                <NavIcon name="quotes" className="size-6 text-slate-300" />
+                <p className="mt-2 text-sm text-muted-foreground">No transcript evidence indexed for this segment yet.</p>
+              </div>
             ) : (
               <div className="space-y-3">
                 {profile.verbatim.map((v) => (

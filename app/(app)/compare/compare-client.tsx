@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/native-select";
 import type { FilterOptions } from "@/lib/services/filter-options";
 import { PageHeader } from "@/components/page-header";
 import { ResearchLoader } from "@/components/research-loader";
@@ -46,8 +47,6 @@ function sideToFilters(side: SideState): Record<string, unknown> {
 }
 
 function SidePicker({ side, setSide, options, title }: { side: SideState; setSide: (s: SideState) => void; options: FilterOptions; title: string }) {
-  const selectClass =
-    "mt-2 h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
   return (
     <Card className="flex-1">
       <CardHeader>
@@ -68,18 +67,19 @@ function SidePicker({ side, setSide, options, title }: { side: SideState; setSid
           ))}
         </div>
         {side.mode === "wave" && (
-          <select
-            value={side.waveId}
-            onChange={(e) => setSide({ ...side, waveId: e.target.value, label: side.label || options.waves.find((w) => w.id === e.target.value)?.label || "" })}
-            className={selectClass}
-          >
-            <option value="">Choose a wave…</option>
-            {options.waves.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.label}
-              </option>
-            ))}
-          </select>
+          <span className="mt-2 block">
+            <Select
+              value={side.waveId}
+              onChange={(e) => setSide({ ...side, waveId: e.target.value, label: side.label || options.waves.find((w) => w.id === e.target.value)?.label || "" })}
+            >
+              <option value="">Choose a wave…</option>
+              {options.waves.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.label}
+                </option>
+              ))}
+            </Select>
+          </span>
         )}
         {side.mode === "range" && (
           <div className="mt-2 flex items-center gap-2 text-sm">
@@ -89,18 +89,19 @@ function SidePicker({ side, setSide, options, title }: { side: SideState; setSid
           </div>
         )}
         {side.mode === "segment" && (
-          <select
-            value={side.segmentId}
-            onChange={(e) => setSide({ ...side, segmentId: e.target.value, label: side.label || options.segments.find((s) => s.id === e.target.value)?.name || "" })}
-            className={selectClass}
-          >
-            <option value="">Choose a segment…</option>
-            {options.segments.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <span className="mt-2 block">
+            <Select
+              value={side.segmentId}
+              onChange={(e) => setSide({ ...side, segmentId: e.target.value, label: side.label || options.segments.find((s) => s.id === e.target.value)?.name || "" })}
+            >
+              <option value="">Choose a segment…</option>
+              {options.segments.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </span>
         )}
       </CardContent>
     </Card>
@@ -163,6 +164,7 @@ export function CompareClient({ options }: { options: FilterOptions }) {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
+        icon="compare"
         title="Compare Time Periods"
         subtitle="Any two waves, ranges or segments — framed as new, growing, continuing and fading."
       />
