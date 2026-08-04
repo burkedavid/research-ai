@@ -45,6 +45,28 @@ export function parseStandaloneAttribution(text: string): { segment: string; reg
   return { segment: parsed.segment, region: parsed.region };
 }
 
+/**
+ * Strip a single wrapping pair of quotation marks (straight or curly) from a
+ * captured verbatim (item 9), so stored content is the words themselves — the
+ * Quote Finder adds its own quotation marks, and clean text searches better.
+ */
+const OPEN_QUOTE = /^\s*["“”"']\s*/;
+const CLOSE_QUOTE = /\s*["“”"']\s*$/;
+export function stripQuoteMarks(text: string): string {
+  return text.replace(OPEN_QUOTE, "").replace(CLOSE_QUOTE, "").trim();
+}
+
+/**
+ * A block that is wholly a quotation (opens and closes with quote marks) but
+ * carries no (Segment, Region) attribution (item 9). Captured as unattributed
+ * verbatim so no consumer voice is lost in reports that quote without tagging.
+ * Length-gated to avoid grabbing short quoted asides inside prose.
+ */
+export function isFullQuotation(text: string): boolean {
+  const t = text.trim();
+  return /^["“”"']/.test(t) && /["“”"']$/.test(t) && t.length >= 40;
+}
+
 /** Rough token estimate: ~1.33 tokens per word. */
 export function estimateTokens(text: string): number {
   const words = text.split(/\s+/).filter(Boolean).length;
@@ -171,13 +193,15 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
     });
   };
 
-  // attributed report quotes become their own direct_quote chunks (item 3)
-  const emitQuote = (quote: string, segment: string, region: string) => {
-    if (!quote.trim()) return;
+  // attributed (item 3) and unattributed (item 9) report quotes become their
+  // own direct_quote chunks, with surrounding quotation marks stripped
+  const emitQuote = (quote: string, segment: string | null, region: string | null) => {
+    const content = stripQuoteMarks(quote);
+    if (!content) return;
     chunks.push({
       seq: chunks.length,
-      content: quote.trim(),
-      tokenCount: estimateTokens(quote),
+      content,
+      tokenCount: estimateTokens(content),
       speakerRole: "consumer",
       evidenceType: "direct_quote",
       sectionPath: section,
@@ -218,6 +242,12 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
       i++; // consume the attribution line
       continue;
     }
+    // unattributed verbatim: a block that is wholly a quotation (item 9)
+    if (isFullQuotation(block.text)) {
+      flush();
+      emitQuote(block.text, null, null);
+      continue;
+    }
 
     if (estimateTokens([...parts, block.text].join("\n\n")) > CHUNKING.maxTokens && parts.length > 0) {
       flush();
@@ -234,6 +264,8 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
     if (
       prev &&
       chunk.evidenceType === prev.evidenceType &&
+      // never merge distinct verbatim quotes together (item 9)
+      prev.evidenceType !== "direct_quote" &&
       !chunk.segmentName &&
       !prev.segmentName &&
       chunk.tokenCount < CHUNKING.minTokens &&

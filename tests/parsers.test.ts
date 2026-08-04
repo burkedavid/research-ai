@@ -125,6 +125,42 @@ describe("report quote attribution (item 3)", () => {
     expect(chunks.some((c) => c.evidenceType === "researcher_summary" && c.content.includes("Everyday costs"))).toBe(true);
   });
 
+  it("strips surrounding quotation marks and captures unattributed verbatim (item 9)", () => {
+    const blocks = [
+      { text: "Consumer reflections", style: "heading" as const, sectionPath: "Consumer reflections" },
+      // curly-quoted, standalone (Segment, Region) attribution on the next line
+      { text: "“Everything costs more but my wages have not moved at all this year.”", style: "body" as const, sectionPath: "Consumer reflections" },
+      { text: "(Road to Retirement, North)", style: "body" as const, sectionPath: "Consumer reflections" },
+      // straight-quoted, wholly a quotation, NO attribution → still captured
+      { text: "\"I just try to focus on what I can actually control day to day.\"", style: "body" as const, sectionPath: "Consumer reflections" },
+    ];
+    const chunks = chunkBlocks(blocks, "report");
+    const quotes = chunks.filter((c) => c.evidenceType === "direct_quote");
+    expect(quotes.length).toBe(2);
+
+    const attributed = quotes.find((q) => q.content.includes("wages have not moved"));
+    expect(attributed?.segmentName).toBe("Road to Retirement");
+    expect(attributed?.region).toBe("North");
+    // no wrapping quote marks left on the stored content
+    expect(attributed?.content.startsWith("“")).toBe(false);
+    expect(attributed?.content.startsWith("\"")).toBe(false);
+    expect(attributed?.content).toBe("Everything costs more but my wages have not moved at all this year.");
+
+    const orphan = quotes.find((q) => q.content.includes("focus on what I can actually control"));
+    expect(orphan).toBeDefined();
+    expect(orphan?.segmentName ?? null).toBeNull();
+    expect(orphan?.region ?? null).toBeNull();
+    expect(orphan?.content.startsWith("\"")).toBe(false);
+  });
+
+  it("does not capture a short quoted aside inside prose as a quote (item 9)", () => {
+    const blocks = [
+      { text: "Consumers often said things were \"fine\" but meant something more complex underneath it all.", style: "body" as const, sectionPath: "S" },
+    ];
+    const chunks = chunkBlocks(blocks, "report");
+    expect(chunks.every((c) => c.evidenceType === "researcher_summary")).toBe(true);
+  });
+
   it("leaves ordinary parentheticals (unknown segment/region) alone", () => {
     const blocks = [
       { text: "Consumers mentioned rising prices (again) across the board this wave.", style: "body" as const, sectionPath: "S" },
