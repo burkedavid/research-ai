@@ -44,11 +44,15 @@ test("capture every page at desktop + mobile", async ({ page }) => {
     ["11-help", "/help"],
     ["12-admin", "/admin"],
   ];
-  for (const [name, route] of routes) {
+  // optional filter: SHOTS_ONLY="home,ask,outputs" limits the run for a quick check
+  const only = process.env.SHOTS_ONLY?.split(",").map((s) => s.trim()).filter(Boolean);
+  const wanted = ([n]: [string, string]) => !only || only.some((o) => n.includes(o));
+  for (const [name, route] of routes.filter(wanted)) {
     await page.goto(route);
     await page.waitForLoadState("networkidle").catch(() => {});
     await shoot(page, name);
   }
+  if (only) return;
 
   // detail pages — follow the first link where one exists
   await page.goto("/segments");

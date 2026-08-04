@@ -2,6 +2,7 @@ import Link from "next/link";
 import { signOut } from "@/auth";
 import { BrandMark } from "@/components/brand-mark";
 import { MobileNav } from "@/components/mobile-nav";
+import { NavIcon, iconForHref } from "@/components/nav-icons";
 import { UserMenu } from "@/components/user-menu";
 import type { SessionUser } from "@/lib/errors";
 
@@ -52,8 +53,9 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
             <Link
               key={item.href}
               href={item.href}
-              className="block rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-brand-50 hover:text-brand-900"
+              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-brand-50 hover:text-brand-900"
             >
+              <NavIcon name={iconForHref(item.href)} className="size-4 shrink-0 opacity-60" />
               {item.label}
             </Link>
           ))}

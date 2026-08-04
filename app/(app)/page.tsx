@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { sql } from "drizzle-orm";
+import { NavIcon, type IconName } from "@/components/nav-icons";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/db";
 
 export const dynamic = "force-dynamic";
 
-const ACTIONS = [
-  { href: "/ask", title: "Ask the Archive", desc: "Natural language questions with evidence-based, cited answers", accent: "bg-sr-orange" },
-  { href: "/compare", title: "Compare Time Periods", desc: "Compare months, years or custom periods", accent: "bg-sr-yellow" },
-  { href: "/segments", title: "Explore Segments", desc: "Fresco segment profiles and trends", accent: "bg-sr-green" },
-  { href: "/quotes", title: "Find Quotes", desc: "Retrieve, shortlist and export direct verbatim", accent: "bg-sr-cyan" },
-  { href: "/reports", title: "Create Report", desc: "Generate summaries, reports and presentation content", accent: "bg-sr-blue" },
-  { href: "/library", title: "Library", desc: "Waves, documents, upload and review queue", accent: "bg-sr-purple" },
-] as const;
+const ACTIONS: { href: string; title: string; desc: string; accent: string; icon: IconName; iconWrap: string }[] = [
+  { href: "/ask", title: "Ask the Archive", desc: "Natural language questions with evidence-based, cited answers", accent: "bg-sr-orange", icon: "ask", iconWrap: "bg-sr-orange/10 text-orange-600" },
+  { href: "/compare", title: "Compare Time Periods", desc: "Compare months, years or custom periods", accent: "bg-sr-yellow", icon: "compare", iconWrap: "bg-sr-yellow/10 text-amber-600" },
+  { href: "/segments", title: "Explore Segments", desc: "Fresco segment profiles and trends", accent: "bg-sr-green", icon: "segments", iconWrap: "bg-sr-green/10 text-green-600" },
+  { href: "/quotes", title: "Find Quotes", desc: "Retrieve, shortlist and export direct verbatim", accent: "bg-sr-cyan", icon: "quotes", iconWrap: "bg-sr-cyan/10 text-teal-600" },
+  { href: "/reports", title: "Create Report", desc: "Generate summaries, reports and presentation content", accent: "bg-sr-blue", icon: "reports", iconWrap: "bg-sr-blue/10 text-sky-600" },
+  { href: "/library", title: "Library", desc: "Waves, documents, upload and review queue", accent: "bg-sr-purple", icon: "library", iconWrap: "bg-sr-purple/10 text-purple-600" },
+];
 
 async function getArchiveStats() {
   const [row] = (await db.execute(sql`
@@ -79,12 +80,15 @@ export default async function HomePage() {
             <Card className="h-full overflow-hidden pt-0 transition group-hover:border-brand-600 group-hover:shadow-md">
               <div className={`h-1 w-full ${a.accent}`} />
               <CardHeader className="pt-5">
-                <CardTitle className="flex items-center justify-between text-brand-900">
-                  {a.title}
+                <div className="mb-3 flex items-center justify-between">
+                  <span className={`flex size-10 items-center justify-center rounded-xl ${a.iconWrap}`}>
+                    <NavIcon name={a.icon} className="size-5" />
+                  </span>
                   <span className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-600" aria-hidden>
                     →
                   </span>
-                </CardTitle>
+                </div>
+                <CardTitle className="text-brand-900">{a.title}</CardTitle>
                 <CardDescription className="leading-5">{a.desc}</CardDescription>
               </CardHeader>
             </Card>

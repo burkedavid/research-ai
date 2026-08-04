@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { savedOutputs } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { Badge } from "@/components/ui/badge";
+import { NavIcon } from "@/components/nav-icons";
 import { ShareControls } from "./share-controls";
 
 export const dynamic = "force-dynamic";
@@ -70,9 +71,21 @@ export default async function SavedOutputsPage() {
 
       <div className="mt-6 space-y-4">
         {rows.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Nothing saved yet. Use “Save to library” on answers, comparisons, shortlists and report drafts.
-          </p>
+          <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-card/50 px-6 py-14 text-center">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-sr-purple/10 text-purple-600">
+              <NavIcon name="library" className="size-7" />
+            </span>
+            <p className="mt-4 text-sm font-medium text-foreground">Nothing saved yet</p>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              Use <strong>Save to library</strong> on an answer, comparison, quote shortlist or report draft, and it will
+              appear here — ready to reopen or share with a read-only link.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <Link href="/ask" className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-brand-600 hover:text-brand-900">Ask the Archive</Link>
+              <Link href="/quotes" className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-brand-600 hover:text-brand-900">Find Quotes</Link>
+              <Link href="/reports" className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-brand-600 hover:text-brand-900">Create Report</Link>
+            </div>
+          </div>
         )}
         {rows.map((row) => (
           <details key={row.id} className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
