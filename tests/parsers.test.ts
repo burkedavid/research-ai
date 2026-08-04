@@ -47,6 +47,53 @@ describe("docx report parser (§B6.1)", () => {
     expect(energyBlock).toBeDefined();
     expect(energyBlock?.sectionPath).toContain(CORPUS_WAVES[1].report.title);
   });
+
+  it("detects bold-paragraph section headings, not just Word heading styles (item 1)", async () => {
+    const { Document, Packer, Paragraph, TextRun } = await import("docx");
+    // reports style headings as fully-bold paragraphs (no Heading style)
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({ children: [new TextRun({ text: "Key Themes", bold: true })] }),
+            new Paragraph({ children: [new TextRun("Consumers feel cautious about the cost of living this month.")] }),
+            new Paragraph({ children: [new TextRun({ text: "Spending behaviour", bold: true })] }),
+            new Paragraph({ children: [new TextRun("Many are trading down on their weekly food shop.")] }),
+          ],
+        },
+      ],
+    });
+    const buffer = await Packer.toBuffer(doc);
+    const { blocks } = await parseDocx(buffer);
+
+    const headings = blocks.filter((b) => b.style === "heading").map((b) => b.text);
+    expect(headings).toContain("Key Themes");
+    expect(headings).toContain("Spending behaviour");
+    // body carries the preceding bold heading as its section path
+    const spendBody = blocks.find((b) => b.text.includes("trading down"));
+    expect(spendBody?.sectionPath).toContain("Spending behaviour");
+  });
+
+  it("does not treat a long body paragraph starting with a section word as a heading (item 1)", async () => {
+    const { Document, Packer, Paragraph, TextRun } = await import("docx");
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun(
+                  "Concerns around current conflicts remain ever present for consumers, although many feel powerless and try not to dwell on them.",
+                ),
+              ],
+            }),
+          ],
+        },
+      ],
+    });
+    const { blocks } = await parseDocx(await Packer.toBuffer(doc));
+    expect(blocks.every((b) => b.style === "body")).toBe(true);
+  });
 });
 
 describe("chunker (§B6.2)", () => {
