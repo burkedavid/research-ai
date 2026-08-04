@@ -22,12 +22,16 @@ const envSchema = z
     STORAGE_DRIVER: z.enum(["local", "vercel-blob"]).default("local"),
     BLOB_READ_WRITE_TOKEN: z.string().optional(),
 
-    LLM_PROVIDER: z.enum(["anthropic", "gateway", "fake"]).default("fake"),
+    LLM_PROVIDER: z.enum(["anthropic", "openai", "gateway", "fake"]).default("fake"),
     ANTHROPIC_API_KEY: z.string().optional(),
+    OPENAI_API_KEY: z.string().optional(),
+    // Optional overrides for the OpenAI chat model IDs (see OPENAI_MODELS).
+    OPENAI_QUERY_MODEL: z.string().optional(),
+    OPENAI_INGESTION_MODEL: z.string().optional(),
     LLM_BASE_URL: z.string().optional(),
     LLM_API_KEY: z.string().optional(),
 
-    EMBEDDINGS_PROVIDER: z.enum(["voyage", "fake"]).default("fake"),
+    EMBEDDINGS_PROVIDER: z.enum(["voyage", "openai", "fake"]).default("fake"),
     VOYAGE_API_KEY: z.string().optional(),
 
     INNGEST_EVENT_KEY: z.string().optional(),
@@ -53,6 +57,10 @@ const envSchema = z
     }
     if (cfg.LLM_PROVIDER === "anthropic" && !cfg.ANTHROPIC_API_KEY) {
       ctx.addIssue({ code: "custom", message: "ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic" });
+    }
+    // One key serves both the OpenAI chat and OpenAI embeddings providers.
+    if ((cfg.LLM_PROVIDER === "openai" || cfg.EMBEDDINGS_PROVIDER === "openai") && !cfg.OPENAI_API_KEY) {
+      ctx.addIssue({ code: "custom", message: "OPENAI_API_KEY is required when using the OpenAI provider" });
     }
     if (cfg.LLM_PROVIDER === "gateway" && (!cfg.LLM_BASE_URL || !cfg.LLM_API_KEY)) {
       ctx.addIssue({ code: "custom", message: "LLM_BASE_URL and LLM_API_KEY are required when LLM_PROVIDER=gateway" });

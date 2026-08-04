@@ -1,6 +1,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModelV3 } from "@ai-sdk/provider";
-import { MODELS } from "@/lib/config";
+import { MODELS, OPENAI_MODELS } from "@/lib/config";
 import { env } from "@/lib/env";
 import { createFakeModel } from "./fake";
 
@@ -23,6 +24,14 @@ export function getLlm(kind: ModelKind): LlmHandle {
     case "anthropic": {
       const provider = createAnthropic({ apiKey: env.ANTHROPIC_API_KEY });
       return { model: provider(modelId) as unknown as LanguageModelV3, modelId };
+    }
+    case "openai": {
+      const provider = createOpenAI({ apiKey: env.OPENAI_API_KEY });
+      const openaiId =
+        kind === "query"
+          ? (env.OPENAI_QUERY_MODEL ?? OPENAI_MODELS.query)
+          : (env.OPENAI_INGESTION_MODEL ?? OPENAI_MODELS.ingestion);
+      return { model: provider(openaiId) as unknown as LanguageModelV3, modelId: openaiId };
     }
     case "gateway": {
       const provider = createAnthropic({ baseURL: env.LLM_BASE_URL, apiKey: env.LLM_API_KEY });

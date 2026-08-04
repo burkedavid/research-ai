@@ -17,6 +17,7 @@ export interface EmbeddingsProvider {
  */
 function fakeProvider(): EmbeddingsProvider {
   const dims = EMBEDDING.dimensions;
+  const model = EMBEDDING.models.fake;
   const hash = (s: string, seed: number) => {
     let h = seed >>> 0;
     for (let i = 0; i < s.length; i++) {
@@ -43,7 +44,7 @@ function fakeProvider(): EmbeddingsProvider {
     return v.map((x) => x / norm);
   };
   return {
-    model: "fake-embeddings-1024",
+    model,
     async embed(texts) {
       return texts.map(embedOne);
     },
@@ -51,8 +52,9 @@ function fakeProvider(): EmbeddingsProvider {
 }
 
 function voyageProvider(): EmbeddingsProvider {
+  const model = EMBEDDING.models.voyage;
   return {
-    model: EMBEDDING.model,
+    model,
     async embed(texts, inputType) {
       const res = await fetch("https://api.voyageai.com/v1/embeddings", {
         method: "POST",
@@ -61,7 +63,7 @@ function voyageProvider(): EmbeddingsProvider {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: EMBEDDING.model,
+          model,
           input: texts,
           input_type: inputType,
           output_dimension: EMBEDDING.dimensions,
@@ -76,6 +78,45 @@ function voyageProvider(): EmbeddingsProvider {
   };
 }
 
+/**
+ * OpenAI embeddings via the REST API (same fetch style as Voyage — no SDK dep).
+ * `dimensions` requests text-embedding-3-large truncated to our canonical 1024
+ * width (Matryoshka), so the existing vector(1024) column + HNSW index are
+ * untouched. `inputType` has no OpenAI equivalent and is intentionally ignored.
+ */
+export function openaiProvider(): EmbeddingsProvider {
+  const model = EMBEDDING.models.openai;
+  return {
+    model,
+    async embed(texts) {
+      const res = await fetch("https://api.openai.com/v1/embeddings", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          input: texts,
+          dimensions: EMBEDDING.dimensions,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`OpenAI embeddings failed: ${res.status} ${await res.text()}`);
+      }
+      const body = (await res.json()) as { data: { index: number; embedding: number[] }[] };
+      return body.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
+    },
+  };
+}
+
 export function getEmbeddings(): EmbeddingsProvider {
-  return env.EMBEDDINGS_PROVIDER === "voyage" ? voyageProvider() : fakeProvider();
+  switch (env.EMBEDDINGS_PROVIDER) {
+    case "voyage":
+      return voyageProvider();
+    case "openai":
+      return openaiProvider();
+    case "fake":
+      return fakeProvider();
+  }
 }

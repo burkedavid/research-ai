@@ -10,7 +10,9 @@ Secure RAG platform over a longitudinal qualitative research archive. Full spec:
 
 ## Stack (decided in §B3 — do not swap)
 
-Next.js App Router + TypeScript · Tailwind · Neon Postgres + pgvector (Docker locally) · Drizzle ORM · Vercel Blob (local-disk driver in dev) · Inngest (inline mode in dev/tests) · Auth.js v5 + Entra ID (dev credentials login locally) · Vercel AI SDK (Anthropic / gateway / deterministic fake) · Voyage embeddings (deterministic fake in dev/tests) · Zod everywhere · Vitest + Playwright.
+Next.js App Router + TypeScript · Tailwind · Neon Postgres + pgvector (Docker locally) · Drizzle ORM · Vercel Blob (local-disk driver in dev) · Inngest (inline mode in dev/tests) · Auth.js v5 + Entra ID (dev credentials login locally) · Vercel AI SDK (Anthropic / OpenAI / gateway / deterministic fake) · Voyage or OpenAI embeddings (deterministic fake in dev/tests) · Zod everywhere · Vitest + Playwright.
+
+> Anthropic + Voyage remain the default and the tested-in-prod path. OpenAI (`LLM_PROVIDER=openai`, `EMBEDDINGS_PROVIDER=openai`, one `OPENAI_API_KEY`) is a supported alternative provider — added on request, default unchanged. OpenAI embeddings use `text-embedding-3-large` requested at the canonical **1024** dims (Matryoshka) so the `vector(1024)` column + HNSW index are untouched; switching provider needs a one-time `npm run reembed`. Model IDs live in `lib/config.ts` (`OPENAI_MODELS`, env-overridable).
 
 ## Running locally
 

@@ -134,6 +134,32 @@ describe("hardening sweep (§B10.5, §B9)", () => {
     ).not.toThrow();
   });
 
+  it("OpenAI provider requires OPENAI_API_KEY (LLM or embeddings)", () => {
+    const base = { NODE_ENV: "development", DATABASE_URL: "postgres://real", AUTH_SECRET: "real-secret" };
+    // openai chat, no key → reject
+    expect(() =>
+      parseEnv({ ...base, LLM_PROVIDER: "openai", EMBEDDINGS_PROVIDER: "openai" } as NodeJS.ProcessEnv),
+    ).toThrow(/OPENAI_API_KEY/);
+    // one key serves both openai chat + openai embeddings → parses
+    expect(() =>
+      parseEnv({
+        ...base,
+        LLM_PROVIDER: "openai",
+        EMBEDDINGS_PROVIDER: "openai",
+        OPENAI_API_KEY: "sk-test",
+      } as NodeJS.ProcessEnv),
+    ).not.toThrow();
+    // openai embeddings alongside anthropic chat still needs the key
+    expect(() =>
+      parseEnv({
+        ...base,
+        LLM_PROVIDER: "anthropic",
+        ANTHROPIC_API_KEY: "k",
+        EMBEDDINGS_PROVIDER: "openai",
+      } as NodeJS.ProcessEnv),
+    ).toThrow(/OPENAI_API_KEY/);
+  });
+
   it("no server code logs chunk content (§B9.5 spot check)", () => {
     const sources = walk(path.join(process.cwd(), "lib"));
     for (const file of sources) {
