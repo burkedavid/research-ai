@@ -214,6 +214,8 @@ export const chunks = pgTable(
     sentiment: sentimentEnum("sentiment"),
     sectionPath: text("section_path"),
     pageRef: text("page_ref"),
+    // region of an attributed report quote, e.g. "North" (item 3)
+    region: text("region"),
     segmentId: uuid("segment_id").references(() => segments.id),
     waveId: uuid("wave_id")
       .notNull()

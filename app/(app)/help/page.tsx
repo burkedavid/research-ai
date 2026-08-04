@@ -64,11 +64,14 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
 ];
 
 const GLOSSARY = [
-  ["Wave", "One month's fieldwork — the reports, transcripts and notes uploaded together for that month."],
-  ["Segment", "A Fresco consumer segment (e.g. Rising Metropolitans). Interviews are tagged to one segment."],
-  ["Theme", "A topic from the controlled taxonomy (e.g. Energy and fuel). Admins can add, define and merge themes."],
-  ["Verbatim / direct quote", "A consumer's exact words from a transcript — never paraphrased, always machine-verified."],
+  ["Wave", "One month's fieldwork. Reports of any cadence within a month share a wave; each report keeps its own day-level date."],
+  ["Report date", "The fieldwork date read automatically from the filename (e.g. 01.07.26). Drives which wave a bulk-uploaded report is filed under, and date-range filtering."],
+  ["Segment", "One of the twelve Fresco consumer segments (e.g. Road to Retirement). Report quotes attributed as (Segment, Region) are tagged to their segment."],
+  ["Region", "The consumer's region (North, South, Midlands, Scotland, Wales, London…), read from report attributions and available as a filter."],
+  ["Theme", "A topic from the controlled taxonomy (e.g. Energy and fuel). Admins can add, define and merge themes; the ingest AI proposes new ones."],
+  ["Verbatim / direct quote", "A consumer's exact words — from a transcript, or attributed inline in a report — never paraphrased, always machine-verified."],
   ["Researcher summary", "Findings written by researchers in reports — agreed interpretation, distinct from consumer voice."],
+  ["Sentiment", "The ingest AI's assessment of a passage's tone (positive/negative/neutral/mixed). Indicative only, filterable."],
   ["Evidential basis", "The narrative confidence statement computed from how much evidence supports an answer."],
   ["Citation [1]", "A numbered link from a claim to the exact source passage it came from."],
   ["Review gate", "The human check every uploaded document passes before it becomes searchable."],
@@ -175,12 +178,20 @@ export default async function HelpPage() {
           </ul>
         </SectionCard>
 
-        <SectionCard accent="bg-sr-yellow" title="The monthly wave workflow">
+        <SectionCard accent="bg-sr-yellow" title="Loading reports & the wave workflow">
+          <p>
+            Two ways to add material. For a single month, create the wave (month, year, wave number, key events) and
+            upload into it. For a back-catalogue, use <strong>Bulk upload reports (auto-date)</strong> — pick a project,
+            drop in many files at once, and each is filed under the wave for its own month, read from the date in the
+            filename (e.g. <em>…01.07.26…</em> → July 2026). Files whose name has no readable date are flagged so you can
+            rename or file them by hand. The report&apos;s exact day-level date is kept, so twice-weekly early reports
+            stay distinct even when they share a month.
+          </p>
           <ol className="list-decimal space-y-2 pl-5">
-            <li>Create the wave in the Library (month, year, wave number, key events).</li>
             <li>
-              Upload the month&apos;s files — Word reports, transcripts (.txt/.vtt/.docx), crib sheets, PowerPoint
-              debriefs, Excel/CSV. The <em>source type</em> you pick controls how each file is read.
+              Upload your files — Word reports, PowerPoint debriefs, transcripts (.txt/.vtt/.docx), crib sheets,
+              Excel/CSV. The <em>source type</em> you pick controls how each file is read. Report headings (whether
+              styled or just bold) are detected so each section is searchable on its own.
             </li>
             <li>
               <strong>Review each document.</strong> Check the extracted passages against the original, fix speaker
@@ -190,11 +201,27 @@ export default async function HelpPage() {
               change the searchable text; the original file is kept untouched but access-restricted.
             </li>
             <li>Approve each document to index it, then confirm the wave.</li>
-            <li>Run a what-has-changed report against the previous wave.</li>
+            <li>Run a what-has-changed report, or open Trends for the whole archive.</li>
           </ol>
           <p className="text-xs text-muted-foreground">
             Duplicates are refused automatically; a changed file with the same name becomes a new version — nothing is
             ever silently overwritten.
+          </p>
+        </SectionCard>
+
+        <SectionCard accent="bg-sr-orange" title="Segments, regions & quotes in reports">
+          <p>
+            Consumers are grouped into the twelve Fresco segments (Still at Home, Starting Out, Rising Metropolitans,
+            Constrained Parents, Working Singles &amp; Couples, Home-Owning Families, High Income Professionals, Older
+            Working Families, Mid-Life Renters, Asset Rich Greys, Road to Retirement, Budgeting Elderly).
+          </p>
+          <p>
+            Where a report quotes a consumer and attributes it inline as <em>(Segment, Region)</em> — for example
+            &ldquo;…(Road to Retirement, North)&rdquo; — that verbatim is captured as a direct quote tagged with its
+            segment and region. So even with reports only and no transcripts, those quotes appear in{" "}
+            <Link href="/quotes" className="font-medium underline">Find Quotes</Link> and can be filtered by
+            <strong> region</strong> (North, South, Midlands, Scotland, Wales, London…) alongside segment, theme and
+            date.
           </p>
         </SectionCard>
 

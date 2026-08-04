@@ -50,6 +50,13 @@
       "when": 1785851197298,
       "tag": "0006_report-date",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785854327286,
+      "tag": "0007_chunk-region",
+      "breakpoints": true
     }
   ]
 }

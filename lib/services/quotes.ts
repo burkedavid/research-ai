@@ -15,6 +15,7 @@ export interface QuoteResult {
   wave: string;
   filename: string;
   sentiment: string | null;
+  region: string | null;
   score: number;
   matchedSemantic: boolean;
   matchedKeyword: boolean;
@@ -85,6 +86,7 @@ export async function findQuotes(params: {
           wave: `${chunk.year}-${String(chunk.month).padStart(2, "0")}`,
           filename: chunk.filename,
           sentiment: chunk.sentiment,
+          region: chunk.region,
           score: chunk.match.rrfScore,
           matchedSemantic: chunk.match.semantic,
           matchedKeyword: chunk.match.keyword,
@@ -102,6 +104,7 @@ export async function findQuotes(params: {
           wave: `${chunk.year}-${String(chunk.month).padStart(2, "0")}`,
           filename: chunk.filename,
           sentiment: chunk.sentiment,
+          region: chunk.region,
           score: chunk.match.rrfScore,
           matchedSemantic: chunk.match.semantic,
           matchedKeyword: chunk.match.keyword,

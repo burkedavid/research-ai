@@ -12,6 +12,7 @@ export interface FilterState {
   sourceTypes: string[];
   evidenceTypes: string[];
   sentiments: string[];
+  regions: string[];
   dateRange: { fromYear: number; fromMonth: number; toYear: number; toMonth: number } | null;
 }
 
@@ -22,6 +23,7 @@ export const EMPTY_FILTERS: FilterState = {
   sourceTypes: [],
   evidenceTypes: [],
   sentiments: [],
+  regions: [],
   dateRange: null,
 };
 
@@ -34,6 +36,7 @@ export function toApiFilters(f: FilterState): Record<string, unknown> | undefine
   if (f.sourceTypes.length) out.sourceTypes = f.sourceTypes;
   if (f.evidenceTypes.length) out.evidenceTypes = f.evidenceTypes;
   if (f.sentiments.length) out.sentiments = f.sentiments;
+  if (f.regions.length) out.regions = f.regions;
   if (f.dateRange) out.dateRange = f.dateRange;
   return Object.keys(out).length ? out : undefined;
 }
@@ -41,6 +44,7 @@ export function toApiFilters(f: FilterState): Record<string, unknown> | undefine
 const SOURCE_TYPES = ["report", "transcript", "crib_sheet", "moderator_notes", "discussion_guide", "debrief_deck", "coding_frame", "tabular", "other"];
 const EVIDENCE_TYPES = ["direct_quote", "researcher_summary", "guide", "context"];
 const SENTIMENTS = ["positive", "negative", "neutral", "mixed"];
+const REGIONS = ["North", "South", "Midlands", "Scotland", "Wales", "London", "East", "West"];
 
 /** Section accent dots drawn from the Sentiment Research mark's palette. */
 const ACCENTS = {
@@ -51,6 +55,7 @@ const ACCENTS = {
   sources: "bg-sr-blue",
   evidence: "bg-sr-purple",
   sentiment: "bg-sr-magenta",
+  region: "bg-sr-orange",
 } as const;
 
 function Chip({
@@ -136,6 +141,7 @@ export function FilterSidebar({
     ...value.sourceTypes.map((s) => ({ label: s.replace(/_/g, " "), clear: () => onChange({ ...value, sourceTypes: value.sourceTypes.filter((v) => v !== s) }) })),
     ...value.evidenceTypes.map((s) => ({ label: s.replace(/_/g, " "), clear: () => onChange({ ...value, evidenceTypes: value.evidenceTypes.filter((v) => v !== s) }) })),
     ...value.sentiments.map((s) => ({ label: s, clear: () => onChange({ ...value, sentiments: value.sentiments.filter((v) => v !== s) }) })),
+    ...value.regions.map((s) => ({ label: s, clear: () => onChange({ ...value, regions: value.regions.filter((v) => v !== s) }) })),
     ...(value.dateRange
       ? [{
           label: `${value.dateRange.fromYear}-${String(value.dateRange.fromMonth).padStart(2, "0")} → ${value.dateRange.toYear < 2100 ? `${value.dateRange.toYear}-${String(value.dateRange.toMonth).padStart(2, "0")}` : "now"}`,
@@ -314,6 +320,19 @@ export function FilterSidebar({
               </div>
             </Section>
           )}
+
+          <Section title="Region" accent={ACCENTS.region} count={value.regions.length}>
+            <div className="flex flex-wrap gap-1.5">
+              {REGIONS.map((s) => (
+                <Chip
+                  key={s}
+                  label={s}
+                  selected={value.regions.includes(s)}
+                  onToggle={() => onChange({ ...value, regions: toggle(value.regions, s) })}
+                />
+              ))}
+            </div>
+          </Section>
 
           <Section title="Sentiment" accent={ACCENTS.sentiment} count={value.sentiments.length}>
             <div className="flex flex-wrap gap-1.5">

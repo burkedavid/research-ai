@@ -43,6 +43,7 @@ interface Quote {
   wave: string;
   filename: string;
   sentiment: string | null;
+  region: string | null;
   matchedSemantic: boolean;
   matchedKeyword: boolean;
 }
@@ -238,7 +239,8 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
                     <SentimentBadge sentiment={quote.sentiment} />
                     <span>
                       {quote.interviewRef ?? "consumer"}
-                      {quote.segmentName ? ` · ${quote.segmentName}` : ""} · {quote.wave}
+                      {quote.segmentName ? ` · ${quote.segmentName}` : ""}
+                      {quote.region ? ` · ${quote.region}` : ""} · {quote.wave}
                     </span>
                     <a
                       href={`/library/documents/${quote.documentId}?chunk=${quote.chunkId}`}

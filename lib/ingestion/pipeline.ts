@@ -94,6 +94,13 @@ export async function parseAndChunkDocument(documentId: string): Promise<{ chunk
       }
     }
 
+    // resolve per-chunk segment names from report attributions (item 3)
+    const segmentIdByName = new Map<string, string>();
+    if (drafts.some((d) => d.segmentName)) {
+      const allSegments = await db.select({ id: segments.id, name: segments.name }).from(segments);
+      for (const s of allSegments) segmentIdByName.set(s.name, s.id);
+    }
+
     // idempotent: rerunning the step replaces this document's chunks
     await db.delete(chunks).where(eq(chunks.documentId, documentId));
     if (drafts.length > 0) {
@@ -108,7 +115,10 @@ export async function parseAndChunkDocument(documentId: string): Promise<{ chunk
           evidenceType: d.evidenceType,
           sectionPath: d.sectionPath,
           pageRef: d.pageRef,
-          segmentId,
+          region: d.region ?? null,
+          // an attributed report quote uses its own segment; otherwise fall back
+          // to the document-level (transcript) segment
+          segmentId: (d.segmentName ? segmentIdByName.get(d.segmentName) : null) ?? segmentId,
           waveId: doc.waveId,
         })),
       );

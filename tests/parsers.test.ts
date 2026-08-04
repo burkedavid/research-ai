@@ -96,6 +96,45 @@ describe("docx report parser (§B6.1)", () => {
   });
 });
 
+describe("report quote attribution (item 3)", () => {
+  it("extracts (Segment, Region) attributed quotes as direct_quote chunks", () => {
+    const blocks = [
+      { text: "Key concerns right now", style: "heading" as const, sectionPath: "Key concerns right now" },
+      { text: "Everyday costs remain the biggest concern for most consumers this month.", style: "body" as const, sectionPath: "Key concerns right now" },
+      { text: "It feels like everything is going up at once and my wages just aren't keeping pace.", style: "body" as const, sectionPath: "Key concerns right now" },
+      { text: "(Rising Metropolitans, North)", style: "body" as const, sectionPath: "Key concerns right now" },
+      { text: "The pension worries me more than anything else at the moment. (Road to Retirement, Scotland)", style: "body" as const, sectionPath: "Key concerns right now" },
+    ];
+    const chunks = chunkBlocks(blocks, "report");
+
+    const quotes = chunks.filter((c) => c.evidenceType === "direct_quote");
+    expect(quotes.length).toBe(2);
+
+    const standalone = quotes.find((q) => q.content.includes("wages just aren't keeping pace"));
+    expect(standalone?.segmentName).toBe("Rising Metropolitans");
+    expect(standalone?.region).toBe("North");
+    expect(standalone?.speakerRole).toBe("consumer");
+    expect(standalone?.content).not.toContain("(Rising Metropolitans");
+
+    const inline = quotes.find((q) => q.content.includes("pension worries me"));
+    expect(inline?.segmentName).toBe("Road to Retirement");
+    expect(inline?.region).toBe("Scotland");
+    expect(inline?.content).not.toContain("(Road to Retirement");
+
+    // the non-quote prose stays a researcher_summary chunk
+    expect(chunks.some((c) => c.evidenceType === "researcher_summary" && c.content.includes("Everyday costs"))).toBe(true);
+  });
+
+  it("leaves ordinary parentheticals (unknown segment/region) alone", () => {
+    const blocks = [
+      { text: "Consumers mentioned rising prices (again) across the board this wave.", style: "body" as const, sectionPath: "S" },
+    ];
+    const chunks = chunkBlocks(blocks, "report");
+    expect(chunks.every((c) => c.evidenceType === "researcher_summary")).toBe(true);
+    expect(chunks.every((c) => !c.segmentName)).toBe(true);
+  });
+});
+
 describe("chunker (§B6.2)", () => {
   it("splits transcripts at Q&A boundaries with the question attached", () => {
     const { blocks } = parseTranscriptText(renderTranscript(CORPUS_WAVES[1].interviews[1]));

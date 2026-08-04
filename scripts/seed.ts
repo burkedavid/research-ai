@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { clients, projects, segments, themes, users } from "@/db/schema";
 import { buildReportDocx } from "@/lib/seed/build-files";
 import { CORPUS_WAVES, FRESCO_SEGMENTS, THEMES, renderTranscript } from "@/lib/seed/corpus";
+import { REAL_SEGMENTS } from "@/lib/seed/segments";
 
 /**
  * Seeds reference data (users, client, project, segments, themes) and writes
@@ -36,13 +37,18 @@ async function seedUsers() {
 }
 
 async function seedTaxonomy() {
-  for (const seg of FRESCO_SEGMENTS) {
+  // real report segments (item 3) + the synthetic corpus set for the demo/tests
+  const allSegments = [...REAL_SEGMENTS, ...FRESCO_SEGMENTS];
+  const seen = new Set<string>();
+  for (const seg of allSegments) {
+    if (seen.has(seg.name)) continue;
+    seen.add(seg.name);
     await db.insert(segments).values(seg).onConflictDoNothing();
   }
   for (const name of THEMES) {
     await db.insert(themes).values({ name }).onConflictDoNothing();
   }
-  console.log(`Seeded ${FRESCO_SEGMENTS.length} segments, ${THEMES.length} themes`);
+  console.log(`Seeded ${seen.size} segments, ${THEMES.length} themes`);
 }
 
 async function seedProject(): Promise<string> {

@@ -31,6 +31,17 @@ export async function resetTestDatabase() {
     ["Comfortable Traditionalists", "Older, mortgage-free"],
     ["Young Strivers", "Early-career renters"],
     ["Prudent Professionals", "Mid-career savers"],
+    // real report segments (item 3) that don't overlap the synthetic set above
+    ["Still at Home", "Younger adults still at home"],
+    ["Starting Out", "Early-career, often renting"],
+    ["Constrained Parents", "Parents squeezed by childcare and costs"],
+    ["Working Singles & Couples", "Working-age, no children"],
+    ["Home-Owning Families", "Mortgaged families, school-age children"],
+    ["High Income Professionals", "Higher earners, comfortable"],
+    ["Older Working Families", "Established families, later working life"],
+    ["Mid-Life Renters", "Mid-life renting households"],
+    ["Asset Rich Greys", "Older, asset-rich, mortgage-free"],
+    ["Road to Retirement", "Approaching retirement"],
   ];
   for (const [name, description] of segments) {
     await client`INSERT INTO segments (name, description) VALUES (${name}, ${description})`;

@@ -1,6 +1,7 @@
 import { CHUNKING } from "@/lib/config";
 import type { ParsedBlock } from "@/lib/parsers";
 import type { SourceType } from "@/lib/parsers";
+import { matchRegion, matchSegmentName } from "@/lib/seed/segments";
 
 export type SpeakerRole = "moderator" | "consumer" | "mixed" | "n/a";
 export type EvidenceType = "direct_quote" | "researcher_summary" | "guide" | "context";
@@ -13,6 +14,35 @@ export interface ChunkDraft {
   evidenceType: EvidenceType;
   sectionPath: string | null;
   pageRef: string | null;
+  /** report-quote attribution (item 3): resolved segment name + region */
+  segmentName?: string | null;
+  region?: string | null;
+}
+
+/**
+ * Detect an inline attribution "(Segment, Region)" in report prose (item 3),
+ * either at the end of the quote paragraph or as a standalone line. Returns the
+ * resolved segment + region, and — when inline — the quote with the marker
+ * stripped. Only matches when BOTH the segment and region are recognised, so
+ * ordinary parenthetical asides are left alone.
+ */
+const ATTR_RE = /\(([^(),]{3,40}),\s*([A-Za-z][A-Za-z .&'-]{1,20})\)\s*$/;
+
+export function parseAttribution(text: string): { quote: string; segment: string; region: string } | null {
+  const m = text.match(ATTR_RE);
+  if (!m) return null;
+  const segment = matchSegmentName(m[1]);
+  const region = matchRegion(m[2]);
+  if (!segment || !region) return null;
+  return { quote: text.slice(0, m.index).trim(), segment, region };
+}
+
+/** A standalone "(Segment, Region)" line that attributes the previous paragraph. */
+export function parseStandaloneAttribution(text: string): { segment: string; region: string } | null {
+  if (!/^\(.*\)$/.test(text.trim())) return null;
+  const parsed = parseAttribution(text);
+  if (!parsed || parsed.quote !== "") return null;
+  return { segment: parsed.segment, region: parsed.region };
 }
 
 /** Rough token estimate: ~1.33 tokens per word. */
@@ -141,7 +171,24 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
     });
   };
 
-  for (const block of blocks) {
+  // attributed report quotes become their own direct_quote chunks (item 3)
+  const emitQuote = (quote: string, segment: string, region: string) => {
+    if (!quote.trim()) return;
+    chunks.push({
+      seq: chunks.length,
+      content: quote.trim(),
+      tokenCount: estimateTokens(quote),
+      speakerRole: "consumer",
+      evidenceType: "direct_quote",
+      sectionPath: section,
+      pageRef,
+      segmentName: segment,
+      region,
+    });
+  };
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
     if (block.style === "heading") {
       flush();
       section = block.sectionPath ?? block.text;
@@ -154,6 +201,24 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
       section = blockSection;
     }
     if (block.pageRef) pageRef = block.pageRef;
+
+    // inline attribution: "quote text (Segment, Region)"
+    const inline = parseAttribution(block.text);
+    if (inline) {
+      flush();
+      emitQuote(inline.quote, inline.segment, inline.region);
+      continue;
+    }
+    // standalone attribution on the next line: previous paragraph is the quote
+    const next = blocks[i + 1];
+    const standalone = next && next.style !== "heading" ? parseStandaloneAttribution(next.text) : null;
+    if (standalone) {
+      flush();
+      emitQuote(block.text, standalone.segment, standalone.region);
+      i++; // consume the attribution line
+      continue;
+    }
+
     if (estimateTokens([...parts, block.text].join("\n\n")) > CHUNKING.maxTokens && parts.length > 0) {
       flush();
     }
@@ -161,12 +226,16 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
   }
   flush();
 
-  // fold undersized trailing chunks into their section neighbour
+  // fold undersized trailing chunks into their section neighbour — but never
+  // merge an attributed quote (different evidence type, carries segment/region)
   const merged: ChunkDraft[] = [];
   for (const chunk of chunks) {
     const prev = merged[merged.length - 1];
     if (
       prev &&
+      chunk.evidenceType === prev.evidenceType &&
+      !chunk.segmentName &&
+      !prev.segmentName &&
       chunk.tokenCount < CHUNKING.minTokens &&
       prev.sectionPath === chunk.sectionPath &&
       prev.tokenCount + chunk.tokenCount <= CHUNKING.maxTokens
