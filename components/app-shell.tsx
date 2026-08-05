@@ -2,20 +2,22 @@ import Link from "next/link";
 import { signOut } from "@/auth";
 import { BrandMark } from "@/components/brand-mark";
 import { MobileNav } from "@/components/mobile-nav";
-import { NavIcon, iconForHref } from "@/components/nav-icons";
+import { SidebarNav, type NavGroup } from "@/components/sidebar-nav";
 import { UserMenu } from "@/components/user-menu";
 import type { SessionUser } from "@/lib/errors";
 
-const NAV = [
+const ANALYSE = [
   { href: "/ask", label: "Ask the Archive" },
   { href: "/compare", label: "Compare Periods" },
   { href: "/trends", label: "Trends" },
   { href: "/segments", label: "Explore Segments" },
   { href: "/quotes", label: "Find Quotes" },
   { href: "/reports", label: "Create Report" },
+];
+const MANAGE = [
   { href: "/library", label: "Library" },
   { href: "/help", label: "Help" },
-] as const;
+];
 
 export function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
   async function doSignOut() {
@@ -23,7 +25,11 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
     await signOut({ redirectTo: "/login" });
   }
 
-  const items = [...NAV, ...(user.role === "admin" ? [{ href: "/admin", label: "Administration" }] : [])];
+  const groups: NavGroup[] = [
+    { label: "Analyse", items: ANALYSE },
+    { label: "Manage", items: [...MANAGE, ...(user.role === "admin" ? [{ href: "/admin", label: "Administration" }] : [])] },
+  ];
+  const items = [...ANALYSE, ...MANAGE, ...(user.role === "admin" ? [{ href: "/admin", label: "Administration" }] : [])];
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
@@ -48,18 +54,20 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
             </span>
           </Link>
         </div>
-        <nav className="flex-1 space-y-0.5 px-2 py-4">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-brand-50 hover:text-brand-900"
-            >
-              <NavIcon name={iconForHref(item.href)} className="size-4 shrink-0 opacity-60" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav groups={groups} />
+
+        {/* user workspace at the foot of the sidebar */}
+        <div className="mt-auto border-t border-border px-3 py-3">
+          <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-semibold text-white">
+              {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+            </span>
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate text-sm font-medium text-brand-900">{user.name}</span>
+              <span className="block truncate text-[11px] capitalize text-muted-foreground">{user.role}</span>
+            </span>
+          </div>
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-0">
