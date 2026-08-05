@@ -22,6 +22,12 @@ function Icon({ name, className }: { name: string; className?: string }) {
         <path d="M3 21l7.5-7.5" />
       </>
     ),
+    trends: (
+      <>
+        <path d="M3 3v18h18" />
+        <path d="M7 15l3.5-4 3 2.5L21 6" />
+      </>
+    ),
     segments: (
       <>
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -62,6 +68,7 @@ function Icon({ name, className }: { name: string; className?: string }) {
 
 const PRIMARY_TABS = [
   { href: "/ask", label: "Ask", icon: "ask" },
+  { href: "/trends", label: "Trends", icon: "trends" },
   { href: "/compare", label: "Compare", icon: "compare" },
   { href: "/segments", label: "Segments", icon: "segments" },
   { href: "/quotes", label: "Quotes", icon: "quotes" },
@@ -169,7 +176,7 @@ export function MobileNav({
 
       {/* bottom tab bar */}
       <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] lg:hidden">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {PRIMARY_TABS.map((tab) => {
             const active = pathname.startsWith(tab.href);
             return (
