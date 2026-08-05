@@ -70,7 +70,10 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-0">
+      {/* overflow-x-clip guards against any page-level horizontal scroll on
+          mobile without creating a scroll container (so sticky elements and
+          tables' own overflow-x-auto still work). */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-clip pb-16 lg:pb-0">
         {/* desktop top bar: product name (left) + user profile menu (right).
             Inner content shares the same max-w-7xl container + padding as the
             page body, so the header and page content line up on the left. */}
