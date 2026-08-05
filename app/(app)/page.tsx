@@ -90,16 +90,16 @@ export default async function HomePage() {
       {/* Hero */}
       <div className="relative overflow-hidden border-b border-border/60">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_30rem_at_15%_-10%,rgba(255,129,85,0.10),transparent),radial-gradient(50rem_28rem_at_95%_-20%,rgba(154,108,240,0.12),transparent)]" />
-        <div className="relative px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-14 lg:px-8">
+        <div className="relative px-4 pb-6 pt-6 sm:px-6 sm:pb-7 sm:pt-8 lg:px-8">
           <p className="text-sm font-medium text-brand-600">Welcome back, {firstName}</p>
-          <h1 className="mt-2 max-w-3xl text-3xl font-semibold leading-[1.1] tracking-tight text-brand-900 sm:text-[2.6rem]">
+          <h1 className="mt-1 max-w-3xl text-2xl font-semibold leading-[1.1] tracking-tight text-brand-900 sm:text-[2.1rem]">
             Consumer Sentiment Intelligence Hub
           </h1>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-[15px]">
             Six years of qualitative consumer research — searchable, cited and traceable to every voice. Ask a question,
             trace a theme over time, or pull the verbatim behind it.
           </p>
-          <div className="mt-6 flex flex-wrap gap-2.5">
+          <div className="mt-4 flex flex-wrap gap-2.5">
             <Link href="/ask" className="inline-flex items-center gap-2 rounded-xl bg-brand-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700">
               <NavIcon name="ask" className="size-4" /> Ask the Archive
             </Link>
@@ -109,10 +109,10 @@ export default async function HomePage() {
           </div>
 
           {/* Metrics */}
-          <div className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5 sm:mt-9 sm:grid-cols-4 sm:gap-x-10">
+          <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4 sm:gap-x-10">
             {METRICS.map((m) => (
               <div key={m.label}>
-                <p className="text-2xl font-semibold tracking-tight text-brand-900 sm:text-3xl">{m.value}</p>
+                <p className="text-xl font-semibold tracking-tight text-brand-900 sm:text-2xl">{m.value}</p>
                 <p className="mt-0.5 text-sm font-medium text-foreground">{m.label}</p>
                 <p className="text-xs text-muted-foreground">{m.note}</p>
               </div>
@@ -122,11 +122,11 @@ export default async function HomePage() {
       </div>
 
       {/* Body */}
-      <div className="grid gap-8 px-4 py-8 sm:px-6 lg:grid-cols-3 lg:px-8">
+      <div className="grid gap-6 px-4 py-6 sm:px-6 lg:grid-cols-3 lg:px-8">
         {/* Main: workflows */}
         <div className="lg:col-span-2">
-          <h2 className="text-lg font-semibold text-brand-900">Explore the archive</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <h2 className="text-base font-semibold text-brand-900">Explore the archive</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {ACTIONS.map((a) => (
               <Link
                 key={a.href}
@@ -148,9 +148,9 @@ export default async function HomePage() {
           </div>
 
           {recentSearches.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-lg font-semibold text-brand-900">Jump back in</h2>
-              <div className="mt-4 divide-y divide-border rounded-2xl border border-border bg-card">
+            <div className="mt-6">
+              <h2 className="text-base font-semibold text-brand-900">Jump back in</h2>
+              <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
                 {recentSearches.map((s, i) => (
                   <Link key={i} href="/ask" className="flex items-center gap-3 px-4 py-3 transition hover:bg-brand-50/50">
                     <NavIcon name="ask" className="size-4 shrink-0 text-slate-400" />
@@ -164,10 +164,10 @@ export default async function HomePage() {
         </div>
 
         {/* Aside: trending + latest */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold text-brand-900">Trending themes</h2>
-            <div className="mt-4 space-y-3 rounded-2xl border border-border bg-card p-4">
+            <h2 className="text-base font-semibold text-brand-900">Trending themes</h2>
+            <div className="mt-3 space-y-2.5 rounded-2xl border border-border bg-card p-4">
               {themes.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No themes indexed yet.</p>
               ) : (
@@ -187,8 +187,8 @@ export default async function HomePage() {
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-brand-900">Latest research</h2>
-            <div className="mt-4 divide-y divide-border rounded-2xl border border-border bg-card">
+            <h2 className="text-base font-semibold text-brand-900">Latest research</h2>
+            <div className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
               {latestDocs.length === 0 ? (
                 <p className="p-4 text-sm text-muted-foreground">Nothing indexed yet.</p>
               ) : (
