@@ -105,6 +105,7 @@ export function MobileNav({
     <>
       {/* top brand bar */}
       <div className="sticky top-0 z-40 lg:hidden">
+        <div className="h-1 w-full bg-[linear-gradient(90deg,#ff8155,#ffcc39,#52e838,#49ffef,#4aa8ff,#cd4dff)]" />
         <div className="flex items-center gap-2 border-b border-border/60 bg-white px-4 py-2.5">
           <Link href="/" className="flex min-w-0 items-center gap-2">
             <BrandMark size={30} />

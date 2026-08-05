@@ -47,6 +47,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
           border flows straight into the sidebar border. Quiet chrome: soft
           borders, no accent stripe. */}
       <div className="hidden lg:block">
+        <div className="h-1 w-full bg-[linear-gradient(90deg,#ff8155,#ffcc39,#52e838,#49ffef,#4aa8ff,#cd4dff)]" />
         <header className="flex h-14 items-stretch border-b border-border/60 bg-white">
           <Link href="/" className="flex w-60 shrink-0 items-center gap-2.5 border-r border-border/60 px-4">
             <BrandMark size={32} />

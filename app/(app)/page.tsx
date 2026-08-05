@@ -124,7 +124,7 @@ export default async function HomePage() {
       {/* Body */}
       <div className="grid gap-6 px-4 py-6 sm:px-6 lg:grid-cols-3 lg:px-8">
         {/* Main: workflows */}
-        <div className="lg:col-span-2">
+        <div className="min-w-0 lg:col-span-2">
           <h2 className="text-base font-semibold text-brand-900">Explore the archive</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {ACTIONS.map((a) => (
@@ -164,7 +164,7 @@ export default async function HomePage() {
         </div>
 
         {/* Aside: trending + latest */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div>
             <h2 className="text-base font-semibold text-brand-900">Trending themes</h2>
             <div className="mt-3 space-y-2.5 rounded-2xl border border-border bg-card p-4">
@@ -174,7 +174,7 @@ export default async function HomePage() {
                 themes.map((t) => (
                   <Link key={t.name} href="/trends" className="group block">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="truncate pr-2 text-foreground group-hover:text-brand-900">{t.name}</span>
+                      <span className="min-w-0 truncate pr-2 text-foreground group-hover:text-brand-900">{t.name}</span>
                       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{t.n}</span>
                     </div>
                     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
