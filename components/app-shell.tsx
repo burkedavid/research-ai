@@ -32,7 +32,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
   const items = [...ANALYSE, ...MANAGE, ...(user.role === "admin" ? [{ href: "/admin", label: "Administration" }] : [])];
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-slate-50">
       <MobileNav
         items={items}
         userName={user.name}
@@ -42,57 +42,57 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
         signOutAction={doSignOut}
       />
 
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-white lg:flex">
-        {/* the mark's palette as a signature accent line */}
-        <div className="h-1 w-full bg-[linear-gradient(90deg,#ff8155,#ffcc39,#52e838,#49ffef,#4aa8ff,#cd4dff)]" />
-        <div className="border-b border-border px-4 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <BrandMark size={36} />
+      {/* Desktop top bar spans the FULL width above the sidebar + content, so
+          the divider is a single continuous line and the logo cell's right
+          border flows straight into the sidebar border. Quiet chrome: soft
+          borders, no accent stripe. */}
+      <div className="hidden lg:block">
+        <header className="flex h-14 items-stretch border-b border-border/60 bg-white">
+          <Link href="/" className="flex w-60 shrink-0 items-center gap-2.5 border-r border-border/60 px-4">
+            <BrandMark size={32} />
             <span>
               <span className="block text-sm font-bold leading-tight text-brand-900">Sentiment Research</span>
               <span className="block text-[11px] leading-tight text-muted-foreground">Consumer Sentiment Hub</span>
             </span>
           </Link>
-        </div>
-        <SidebarNav groups={groups} />
-
-        {/* user workspace at the foot of the sidebar */}
-        <div className="mt-auto border-t border-border px-3 py-3">
-          <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-semibold text-white">
-              {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-            </span>
-            <span className="min-w-0 leading-tight">
-              <span className="block truncate text-sm font-medium text-brand-900">{user.name}</span>
-              <span className="block truncate text-[11px] capitalize text-muted-foreground">{user.role}</span>
-            </span>
-          </div>
-        </div>
-      </aside>
-
-      {/* overflow-x-clip guards against any page-level horizontal scroll on
-          mobile without creating a scroll container (so sticky elements and
-          tables' own overflow-x-auto still work). */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-x-clip pb-16 lg:pb-0">
-        {/* desktop top bar: product name (left) + user profile menu (right).
-            Inner content shares the same max-w-7xl container + padding as the
-            page body, so the header and page content line up on the left. */}
-        <header className="hidden border-b border-border bg-white lg:block">
-          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
-            <p className="text-sm font-semibold text-brand-900">Consumer Sentiment Intelligence Hub</p>
-            <div className="ml-auto">
-              <UserMenu
-                name={user.name}
-                role={user.role}
-                transcriptAccess={user.transcriptAccess}
-                email={user.email}
-                signOutAction={doSignOut}
-              />
+          <div className="flex min-w-0 flex-1 items-center">
+            <div className="mx-auto flex w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+              <p className="truncate text-sm font-semibold text-brand-900">Consumer Sentiment Intelligence Hub</p>
+              <div className="ml-auto pl-3">
+                <UserMenu
+                  name={user.name}
+                  role={user.role}
+                  transcriptAccess={user.transcriptAccess}
+                  email={user.email}
+                  signOutAction={doSignOut}
+                />
+              </div>
             </div>
           </div>
         </header>
+      </div>
 
-        <main className="min-w-0 flex-1">
+      {/* Below the top bar: sidebar (desktop) + content */}
+      <div className="flex min-h-0 flex-1">
+        <aside className="hidden w-60 shrink-0 flex-col border-r border-border/60 bg-white lg:flex">
+          <SidebarNav groups={groups} />
+          <div className="mt-auto border-t border-border/60 px-3 py-3">
+            <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-900 text-xs font-semibold text-white">
+                {user.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+              </span>
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate text-sm font-medium text-brand-900">{user.name}</span>
+                <span className="block truncate text-[11px] capitalize text-muted-foreground">{user.role}</span>
+              </span>
+            </div>
+          </div>
+        </aside>
+
+        {/* overflow-x-clip guards against page-level horizontal scroll on mobile
+            without creating a scroll container (sticky panels and tables' own
+            overflow-x-auto keep working). */}
+        <main className="min-w-0 flex-1 overflow-x-clip pb-16 lg:pb-0">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
