@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { auth, signIn } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { env } from "@/lib/env";
+import { getSessionUser } from "@/lib/session";
 
 export const metadata = { title: "Sign in — Sentiment Research Hub" };
 
@@ -15,9 +16,24 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
-  const session = await auth();
+  // Resolve the session against the DATABASE, not just the JWT. A token can be
+  // cryptographically valid while its user row no longer exists (deactivated,
+  // deleted, or the app repointed at a different database) — trusting the token
+  // alone made /login redirect to a page that then 401s, bouncing forever with
+  // no way out but manually clearing cookies. Sign the stale token out instead
+  // so the user simply sees the sign-in form.
+  const [rawSession, sessionUser] = await Promise.all([auth(), getSessionUser()]);
   const params = await searchParams;
-  if (session?.user) redirect(params.callbackUrl ?? "/");
+  if (sessionUser) redirect(params.callbackUrl ?? "/");
+
+  // A token that survives but resolves to no user: the account was removed or
+  // deactivated, or the app now points at a different database.
+  const staleSession = Boolean(rawSession?.user) && !sessionUser;
+
+  async function clearStaleSession() {
+    "use server";
+    await signOut({ redirectTo: "/login" });
+  }
 
   const entraConfigured = Boolean(process.env.AUTH_MICROSOFT_ENTRA_ID_ID);
   // env.ts blocks this flag in a real production boot; gating on it alone
@@ -95,6 +111,17 @@ export default async function LoginPage({
               <p role="alert" className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
                 Sign in failed. Check your details and try again.
               </p>
+            )}
+
+            {staleSession && (
+              <div role="alert" className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <p>Your previous session is no longer valid — please sign in again.</p>
+                <form action={clearStaleSession}>
+                  <button type="submit" className="mt-1 font-medium underline underline-offset-2">
+                    Reset session
+                  </button>
+                </form>
+              </div>
             )}
 
             {entraConfigured && (
