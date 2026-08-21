@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { EMPTY_FILTERS, FilterSidebar, toApiFilters, type FilterState } from "@/components/filter-sidebar";
+import { AiText } from "@/components/ai-text";
 import { PageHeader } from "@/components/page-header";
 import { ResearchLoader } from "@/components/research-loader";
 import type { FilterOptions } from "@/lib/services/filter-options";
@@ -109,30 +110,16 @@ const SUGGESTED_CARDS = [
 
 const RECENTS_KEY = "sr-recent-questions";
 
-/** Render answer text with [n] citations as links to the source viewer. */
+/** Render the answer as markdown, with [n] citations linking to the source viewer. */
 function AnswerText({ text, citations }: { text: string; citations: Citation[] }) {
-  const parts = text.split(/(\[\d+\])/g);
   return (
-    <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">
-      {parts.map((part, i) => {
-        const match = part.match(/^\[(\d+)\]$/);
-        if (!match) return <span key={i}>{part}</span>;
-        const n = Number(match[1]);
-        const citation = citations.find((c) => c.n === n);
-        if (!citation) return <span key={i}>{part}</span>;
-        return (
-          <a
-            key={i}
-            href={`/library/documents/${citation.documentId}?chunk=${citation.chunkId}`}
-            target="_blank"
-            title={`${citation.filename} · ${citation.wave}${citation.segmentName ? ` · ${citation.segmentName}` : ""}`}
-            className="mx-0.5 rounded bg-brand-50 px-1 font-mono text-xs font-medium text-brand-700 no-underline transition-colors hover:bg-brand-100"
-          >
-            [{n}]
-          </a>
-        );
-      })}
-    </p>
+    <AiText
+      text={text}
+      citeHref={(n) => {
+        const citation = citations.find((c) => c.n === Number(n));
+        return citation ? `/library/documents/${citation.documentId}?chunk=${citation.chunkId}` : `#cite-${n}`;
+      }}
+    />
   );
 }
 

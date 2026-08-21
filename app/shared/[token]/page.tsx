@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AiText } from "@/components/ai-text";
 import { BrandMark } from "@/components/brand-mark";
 import { getSharedOutput } from "@/lib/services/sharing";
 
@@ -46,10 +47,10 @@ export default async function SharedOutputPage({ params }: { params: Promise<{ t
           {content.question && <p className="text-sm italic text-muted-foreground">Q: {content.question}</p>}
 
           {content.answer && (
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-800">{content.answer}</p>
+            <AiText text={content.answer ?? ""} className="mt-2" />
           )}
           {content.text && (
-            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">{content.text}</p>
+            <AiText text={content.text ?? ""} />
           )}
           {content.quotes && (
             <ul className="space-y-3">
@@ -69,7 +70,7 @@ export default async function SharedOutputPage({ params }: { params: Promise<{ t
               {content.sections.map((s, i) => (
                 <section key={i}>
                   <h2 className="font-medium text-brand-900">{s.heading}</h2>
-                  <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">{s.text}</p>
+                  <AiText text={s.text} className="mt-1" />
                 </section>
               ))}
             </div>

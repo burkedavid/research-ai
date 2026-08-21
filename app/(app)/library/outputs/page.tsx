@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { savedOutputs } from "@/db/schema";
 import { requireUser } from "@/lib/session";
 import { Badge } from "@/components/ui/badge";
+import { AiText } from "@/components/ai-text";
 import { NavIcon } from "@/components/nav-icons";
 import { ShareControls } from "./share-controls";
 
@@ -23,7 +24,7 @@ function OutputPreview({ kind, content }: { kind: string; content: SavedAnswer }
     return (
       <div>
         {content.question && <p className="text-xs italic text-muted-foreground">Q: {content.question}</p>}
-        <p className="mt-1 whitespace-pre-wrap text-sm text-foreground/80">{content.answer}</p>
+        <AiText text={content.answer ?? ""} className="mt-1" />
       </div>
     );
   }
@@ -39,14 +40,14 @@ function OutputPreview({ kind, content }: { kind: string; content: SavedAnswer }
     );
   }
   if (kind === "comparison") {
-    return <p className="whitespace-pre-wrap text-sm text-foreground/80">{content.text}</p>;
+    return <AiText text={content.text ?? ""} />;
   }
   return (
     <div className="space-y-2">
       {(content.sections ?? []).map((s, i) => (
         <div key={i}>
           <p className="text-sm font-medium text-foreground">{s.heading}</p>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{s.text}</p>
+          <AiText text={s.text} />
         </div>
       ))}
     </div>

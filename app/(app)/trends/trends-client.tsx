@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AiText } from "@/components/ai-text";
 import { PageHeader } from "@/components/page-header";
 import { ResearchLoader } from "@/components/research-loader";
 import { ThemeTimeline } from "@/components/theme-timeline";
@@ -156,13 +157,13 @@ export function TrendsClient({ data, canSynthesise }: { data: TrendData; canSynt
                     <span className="text-muted-foreground">→</span>
                     <Badge variant="secondary">{result.sideB.label}</Badge>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">{result.text}</p>
+                  <AiText text={result.text} />
                   <div className="mt-4 border-t border-border pt-3">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sources</p>
                     <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
                       {[...result.sideA.citations.map((c) => ({ ...c, side: "A" })), ...result.sideB.citations.map((c) => ({ ...c, side: "B" }))].map(
                         (c) => (
-                          <li key={`${c.side}${c.n}`}>
+                          <li key={`${c.side}${c.n}`} id={`cite-${c.side}${c.n}`} className="scroll-mt-20 target:bg-brand-50">
                             <a href={`/library/documents/${c.documentId}?chunk=${c.chunkId}`} target="_blank" className="underline">
                               [{c.side}
                               {c.n}] {c.filename}

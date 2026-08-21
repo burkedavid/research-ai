@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AiText } from "@/components/ai-text";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -207,7 +208,7 @@ export function CompareClient({ options }: { options: FilterOptions }) {
               B — {result.sideB.label}: {result.sideB.basis.statement}
             </p>
           </div>
-          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-800">{result.text}</p>
+          <AiText text={result.text} className="mt-4" />
 
           <div className="mt-4 grid grid-cols-1 gap-4 border-t border-slate-100 pt-3 lg:grid-cols-2">
             {[result.sideA, result.sideB].map((side, i) => (
@@ -217,7 +218,7 @@ export function CompareClient({ options }: { options: FilterOptions }) {
                 </p>
                 <ul className="mt-1 space-y-0.5 text-xs text-slate-600">
                   {side.citations.map((c) => (
-                    <li key={c.n}>
+                    <li key={c.n} id={`cite-${i === 0 ? "A" : "B"}${c.n}`} className="scroll-mt-20 target:bg-brand-50">
                       <a href={`/library/documents/${c.documentId}?chunk=${c.chunkId}`} target="_blank" className="underline">
                         [{i === 0 ? "A" : "B"}{c.n}] {c.filename}
                       </a>{" "}
