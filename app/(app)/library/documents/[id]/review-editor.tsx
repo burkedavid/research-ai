@@ -140,8 +140,8 @@ export function ReviewEditor({ documentId, highlightChunkId, documentStatus, can
     <div className="mt-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="flex flex-wrap items-center gap-2 text-lg font-medium text-brand-900">
-          Extracted chunks ({items.length})
-          {totalPii > 0 && <Badge variant="destructive">{totalPii} possible PII span(s) to resolve</Badge>}
+          {documentStatus === "review" ? "Review the extracted passages" : "Extracted passages"} ({items.length})
+          {totalPii > 0 && <Badge variant="destructive">{totalPii} possible personal detail(s) to resolve</Badge>}
         </h2>
         {canEdit && (
           <div className="flex flex-wrap gap-2">
@@ -167,6 +167,52 @@ export function ReviewEditor({ documentId, highlightChunkId, documentStatus, can
         <Alert variant="destructive" className="mt-2">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {documentStatus === "review" && canEdit && (
+        <div className="mt-3 rounded-lg border border-brand-100 bg-brand-50/60 p-3 text-sm text-slate-700">
+          <p className="font-medium text-brand-900">What to do here</p>
+          <p className="mt-1">
+            Nothing in this document is searchable until you approve it. Read each passage against the original
+            (<strong>Open original</strong>, top right) and check four things:
+          </p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5">
+            <li>
+              <strong>The text extracted cleanly</strong> — no missing or garbled passages. Edit the text if the parser
+              got it wrong.
+            </li>
+            <li>
+              <strong>The labels are right</strong> — who is speaking, whether it is consumer voice or researcher
+              interpretation, and which segment or interview it belongs to.
+            </li>
+            <li>
+              <strong>Themes are correct</strong> — a filled-in chip is tagged, a plain one is not. Click to toggle.
+              Themes the AI suggested are marked, and <strong>Accept AI tags</strong> confirms them all at once.
+            </li>
+            <li>
+              <strong>Any personal details are dealt with</strong> — redact or dismiss each flagged span. Redacting
+              changes the searchable text; the original file is never altered.
+            </li>
+          </ol>
+          <p className="mt-2">
+            Then choose <strong>Approve &amp; index</strong> to make it searchable, or <strong>Reject</strong> if the
+            document should not be used.
+          </p>
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+            <span className="font-medium text-brand-900">Theme chips:</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="rounded-full bg-brand-800 px-2 py-0.5 text-white">tagged</span> confirmed by a reviewer
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-800">tagged</span> suggested by the AI,
+              not yet confirmed
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="rounded-full border border-slate-200 px-2 py-0.5 text-slate-400">not tagged</span> click
+              to add
+            </span>
+          </p>
+        </div>
       )}
 
       <div className="mt-4 space-y-4">
@@ -225,7 +271,7 @@ export function ReviewEditor({ documentId, highlightChunkId, documentStatus, can
 
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
               <label>
-                Speaker{" "}
+                Who is speaking{" "}
                 <select
                   disabled={!canEdit}
                   defaultValue={chunk.speakerRole}
@@ -241,7 +287,7 @@ export function ReviewEditor({ documentId, highlightChunkId, documentStatus, can
                 </select>
               </label>
               <label>
-                Evidence{" "}
+                Evidence type{" "}
                 <select
                   disabled={!canEdit}
                   defaultValue={chunk.evidenceType}
