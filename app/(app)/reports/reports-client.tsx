@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FilterOptions } from "@/lib/services/filter-options";
+import { AiText } from "@/components/ai-text";
 import { PageHeader } from "@/components/page-header";
 import { ResearchLoader } from "@/components/research-loader";
 
@@ -51,6 +52,8 @@ export function ReportsClient({ options }: { options: FilterOptions }) {
   const [themeId, setThemeId] = useState("");
   const [question, setQuestion] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
+  // sections render as formatted text; click Edit to get the markdown source
+  const [editing, setEditing] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -286,12 +289,38 @@ export function ReportsClient({ options }: { options: FilterOptions }) {
                     </AlertDescription>
                   </Alert>
                 )}
-                <Textarea
-                  value={section.text}
-                  onChange={(e) => updateSection(i, { text: e.target.value })}
-                  rows={Math.min(16, Math.max(4, section.text.split("\n").length + 2))}
-                  className="mt-2 text-sm leading-6"
-                />
+                {editing === i ? (
+                  <>
+                    <Textarea
+                      value={section.text}
+                      onChange={(e) => updateSection(i, { text: e.target.value })}
+                      rows={Math.min(20, Math.max(6, section.text.split("\n").length + 2))}
+                      className="mt-2 font-mono text-xs leading-5"
+                      autoFocus
+                    />
+                    <div className="mt-1 flex items-center gap-2">
+                      <Button type="button" size="xs" onClick={() => setEditing(null)}>
+                        Done
+                      </Button>
+                      <span className="text-[11px] text-muted-foreground">
+                        Markdown: **bold**, ## heading, - bullet. Formatting carries through to the Word export.
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="group/section relative mt-2">
+                    <AiText text={section.text} />
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      onClick={() => setEditing(i)}
+                      className="absolute right-0 top-0 opacity-0 transition group-hover/section:opacity-100 focus:opacity-100"
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                )}
                 {section.citations.length > 0 && (
                   <details className="mt-1">
                     <summary className="cursor-pointer text-xs text-muted-foreground">Sources ({section.citations.length})</summary>

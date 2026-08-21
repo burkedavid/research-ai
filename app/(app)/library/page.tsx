@@ -74,6 +74,13 @@ export default async function LibraryPage() {
           <h2 className="text-lg font-medium text-foreground">Waves</h2>
         </div>
         {user.role !== "viewer" && projectRows.length > 0 && (
+          <p className="mb-2 max-w-3xl text-sm text-muted-foreground">
+            A <strong>wave</strong> is one month&apos;s fieldwork. Loading a back-catalogue of reports?{" "}
+            <strong>Bulk upload</strong> reads the date from each filename and files it under the right month
+            automatically. Adding this month&apos;s material by hand? Create the wave first, then upload into it.
+          </p>
+        )}
+        {user.role !== "viewer" && projectRows.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <CreateWaveForm projects={projectRows.map((p) => ({ id: p.id, name: p.name }))} />
             <BulkUploadForm

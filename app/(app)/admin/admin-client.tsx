@@ -327,6 +327,12 @@ export function AdminClient({
         <div className="mt-4">
           <Card>
             <CardContent>
+              <p className="mb-3 text-xs text-muted-foreground">
+                <strong>Viewer</strong> reads answers and reports. <strong>Researcher</strong> can also upload, review
+                and approve documents and create reports. <strong>Admin</strong> adds user, taxonomy and settings
+                management. <strong>Transcript access</strong> is separate from role: without it a person can still
+                search verbatim quoted in reports, but never raw interview transcripts.
+              </p>
               <form
                 className="flex flex-wrap items-end gap-2"
                 onSubmit={async (e) => {

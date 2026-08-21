@@ -8,6 +8,67 @@ export interface ExportSection {
 }
 
 /**
+ * Split a line into runs, honouring **bold** and *italic*. Model output is
+ * markdown, so without this a client-facing document would contain literal
+ * asterisks.
+ */
+function inlineRuns(text: string): TextRun[] {
+  const runs: TextRun[] = [];
+  const re = /(\*\*[^*]+\*\*|(?<!\*)\*[^*\n]+\*(?!\*))/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) runs.push(new TextRun(text.slice(last, m.index)));
+    const tok = m[0];
+    runs.push(
+      tok.startsWith("**")
+        ? new TextRun({ text: tok.slice(2, -2), bold: true })
+        : new TextRun({ text: tok.slice(1, -1), italics: true }),
+    );
+    last = m.index + tok.length;
+  }
+  if (last < text.length) runs.push(new TextRun(text.slice(last)));
+  return runs.length ? runs : [new TextRun(text)];
+}
+
+/**
+ * Convert a section's markdown body into real Word paragraphs — headings,
+ * bullets and bold — rather than dumping the raw source. The models emit
+ * markdown (## NEW, **bold**), which previously appeared verbatim in the
+ * exported document.
+ */
+function markdownParagraphs(body: string): Paragraph[] {
+  const out: Paragraph[] = [];
+  for (const rawLine of body.split("\n")) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const heading = line.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) {
+      out.push(
+        new Paragraph({
+          children: inlineRuns(heading[2]),
+          heading: heading[1].length <= 2 ? HeadingLevel.HEADING_3 : HeadingLevel.HEADING_4,
+        }),
+      );
+      continue;
+    }
+
+    const bullet = line.match(/^[-*•]\s+(.*)$/);
+    if (bullet) {
+      out.push(new Paragraph({ children: inlineRuns(bullet[1]), bullet: { level: 0 } }));
+      continue;
+    }
+
+    // keep the visible number rather than declaring Word numbering, which
+    // would need a document-level numbering config
+
+    out.push(new Paragraph({ children: inlineRuns(line) }));
+  }
+  return out;
+}
+
+/**
  * Word export (§B8, acceptance criterion 6): editable document with a
  * citations appendix so source references survive the export.
  */
@@ -16,9 +77,7 @@ export async function buildExportDocx(params: { title: string; sections: ExportS
 
   for (const section of params.sections) {
     children.push(new Paragraph({ text: section.heading, heading: HeadingLevel.HEADING_2 }));
-    for (const para of section.text.split(/\n{2,}/)) {
-      children.push(new Paragraph({ children: [new TextRun(para.replace(/\n/g, " "))] }));
-    }
+    children.push(...markdownParagraphs(section.text));
   }
 
   const allCitations = params.sections.flatMap((s, i) =>

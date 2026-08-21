@@ -175,11 +175,27 @@ export function CompareClient({ options }: { options: FilterOptions }) {
         <SidePicker side={sideB} setSide={setSideB} options={options} title="Period B (later / comparison)" />
       </div>
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <Input value={question} onChange={(e) => setQuestion(e.target.value)} className="flex-1" />
-        <Button type="button" onClick={run} disabled={!ready || busy} className="sm:w-auto">
-          {busy ? "Comparing…" : "Compare"}
-        </Button>
+      <div className="mt-4">
+        <label htmlFor="compare-question" className="mb-1 block text-xs font-medium text-foreground">
+          What do you want to compare about these two periods?
+        </label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id="compare-question"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="e.g. How has discussion of the economy changed?"
+            className="flex-1"
+          />
+          <Button type="button" onClick={run} disabled={!ready || busy} className="sm:w-auto">
+            {busy ? "Comparing…" : "Compare"}
+          </Button>
+        </div>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          {ready
+            ? "Both periods use the same question, so differences come from the evidence, not the wording."
+            : "Choose a wave, date range or segment for both Period A and Period B to enable Compare."}
+        </p>
       </div>
       {error && (
         <Alert variant="destructive" className="mt-3">
