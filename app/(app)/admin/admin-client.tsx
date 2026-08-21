@@ -81,6 +81,132 @@ interface ProposalRow {
 
 type Tab = "users" | "segments" | "themes" | "projects" | "audit" | "usage" | "retention";
 
+/* ---------- audit log presentation ---------- */
+
+const ACTION_LABEL: Record<string, string> = {
+  login: "Signed in",
+  upload: "Uploaded",
+  approve: "Approved",
+  reject: "Rejected",
+  search: "Searched",
+  source_view: "Viewed source",
+  export: "Exported",
+  permission_change: "Permissions",
+  delete: "Deleted",
+  theme_edit: "Theme",
+  segment_edit: "Segment",
+  client_edit: "Client",
+  project_edit: "Project",
+  wave_edit: "Wave",
+};
+
+const AUDIT_STYLE: Record<string, string> = {
+  login: "bg-slate-100 text-slate-700",
+  upload: "bg-sr-blue/15 text-sky-800",
+  approve: "bg-green-100 text-green-800",
+  reject: "bg-amber-100 text-amber-900",
+  search: "bg-sr-cyan/15 text-teal-800",
+  source_view: "bg-slate-100 text-slate-700",
+  export: "bg-sr-purple/15 text-purple-800",
+  permission_change: "bg-amber-100 text-amber-900",
+  delete: "bg-red-100 text-red-800",
+  theme_edit: "bg-sr-green/15 text-green-800",
+  segment_edit: "bg-sr-green/15 text-green-800",
+  client_edit: "bg-sr-orange/15 text-orange-800",
+  project_edit: "bg-sr-orange/15 text-orange-800",
+  wave_edit: "bg-sr-yellow/15 text-amber-800",
+};
+
+/** Filter chips: group the raw actions into things an admin actually looks for. */
+const AUDIT_GROUPS = [
+  { key: "access", label: "Access & security", actions: ["login", "permission_change"] },
+  { key: "content", label: "Content", actions: ["upload", "approve", "reject", "delete"] },
+  { key: "usage", label: "Research activity", actions: ["search", "source_view", "export"] },
+  { key: "config", label: "Configuration", actions: ["theme_edit", "segment_edit", "client_edit", "project_edit", "wave_edit"] },
+] as const;
+
+const MONTH_ABBR = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTH_ABBR[d.getMonth() + 1]} ${d.getFullYear()}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function relativeTime(iso: string): string {
+  const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} hr ago`;
+  const d = Math.floor(s / 86400);
+  return d < 30 ? `${d} day${d === 1 ? "" : "s"} ago` : `${Math.floor(d / 30)} mo ago`;
+}
+
+/**
+ * Turn a raw audit row into one plain-English sentence. The detail JSON is
+ * deliberately never dumped: it contains one-way query hashes and internal ids
+ * that mean nothing to a reader and make the log unusable as a record.
+ */
+function describeAudit(a: AuditRow): string {
+  const d = (a.detail ?? {}) as Record<string, unknown>;
+  const str = (k: string) => (typeof d[k] === "string" ? (d[k] as string) : undefined);
+  const file = str("filename");
+  const feature = str("feature");
+  const op = str("op");
+  const entity = a.entityType ?? "record";
+
+  switch (a.action) {
+    case "login":
+      return "Signed in to the hub";
+    case "upload":
+      return `${file ?? "A document"}${d.version && Number(d.version) > 1 ? ` (version ${d.version})` : ""}${
+        str("sourceType") ? ` — ${str("sourceType")!.replace(/_/g, " ")}` : ""
+      }`;
+    case "approve":
+      return `${file ?? "A document"} approved and indexed`;
+    case "reject":
+      return `${file ?? "A document"} rejected at review`;
+    case "delete":
+      return op === "delete_empty_wave" ? "Removed an empty wave" : `${file ?? `A ${entity}`} permanently deleted`;
+    case "source_view":
+      return `Opened ${file ?? "a source document"}`;
+    case "search": {
+      const where =
+        feature === "ask" ? "Ask the Archive" : feature === "quotes" ? "Find Quotes" : feature === "compare" ? "Compare Periods" : feature === "report" ? "a report" : feature === "word_frequency" ? "word frequency" : "the archive";
+      return `Ran a search in ${where}`;
+    }
+    case "export":
+      return op === "share_created"
+        ? "Created a read-only share link"
+        : op === "share_revoked"
+          ? "Revoked a share link"
+          : `Exported ${str("what") ?? "an output"}${str("format") ? ` as ${str("format")}` : ""}`;
+    case "permission_change": {
+      if (op === "create") return `Created user account (${str("role") ?? "user"})`;
+      if (op === "retention") return `Set retention to ${d.retentionMonths ?? "no limit"} month(s)`;
+      const bits = [
+        str("role") ? `role → ${str("role")}` : null,
+        typeof d.transcriptAccess === "boolean" ? `transcript access ${d.transcriptAccess ? "granted" : "removed"}` : null,
+        typeof d.active === "boolean" ? (d.active ? "reactivated" : "deactivated") : null,
+      ].filter(Boolean);
+      return bits.length ? `Account updated: ${bits.join(", ")}` : "Account permissions changed";
+    }
+    case "theme_edit":
+    case "segment_edit":
+    case "client_edit":
+    case "project_edit":
+    case "wave_edit": {
+      const noun = a.action.replace("_edit", "");
+      const name = str("name");
+      if (op === "create") return `Created ${noun}${name ? ` “${name}”` : ""}`;
+      if (op === "merge") return `Merged a ${noun} into another${d.chunksMoved ? ` (${d.chunksMoved} passages moved)` : ""}`;
+      if (op === "update") return `Updated ${noun}${name ? ` “${name}”` : ""}`;
+      return `Changed a ${noun}`;
+    }
+    default:
+      return op ? `${op.replace(/_/g, " ")}` : "—";
+  }
+}
+
 export function AdminClient({
   currentUserId,
   users,
@@ -105,6 +231,21 @@ export function AdminClient({
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("users");
   const [error, setError] = useState<string | null>(null);
+  const [auditFilter, setAuditFilter] = useState<"all" | (typeof AUDIT_GROUPS)[number]["key"]>("all");
+
+  /** Resolve the actor id to a name — a bare UUID tells a reader nothing. */
+  const userLabel = (id: string | null) => {
+    if (!id) return "System";
+    const u = users.find((x) => x.id === id);
+    return u ? u.name : "Removed user";
+  };
+
+  const visibleAudit =
+    auditFilter === "all"
+      ? auditRows
+      : auditRows.filter((a) =>
+          (AUDIT_GROUPS.find((g) => g.key === auditFilter)?.actions as readonly string[] | undefined)?.includes(a.action),
+        );
 
   async function call(url: string, method: string, body: Record<string, unknown>): Promise<boolean> {
     setError(null);
@@ -557,31 +698,68 @@ export function AdminClient({
       )}
 
       {tab === "audit" && (
-        <Card className="mt-4">
-          <Table className="min-w-[560px] text-xs">
-            <TableHeader>
-              <TableRow>
-                <TableHead>When</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Entity</TableHead>
-                <TableHead>Detail</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {auditRows.map((a) => (
-                <TableRow key={a.id} className="align-top">
-                  <TableCell className="whitespace-nowrap text-muted-foreground">{a.createdAt.replace("T", " ").slice(0, 19)}</TableCell>
-                  <TableCell className="font-medium text-slate-900">{a.action}</TableCell>
-                  <TableCell className="text-slate-600">
-                    {a.entityType}
-                    {a.entityId ? ` ${a.entityId.slice(0, 8)}…` : ""}
-                  </TableCell>
-                  <TableCell className="max-w-md truncate text-muted-foreground">{a.detail ? JSON.stringify(a.detail) : "—"}</TableCell>
+        <div className="mt-4">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            {(["all", ...AUDIT_GROUPS.map((g) => g.key)] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setAuditFilter(k)}
+                className={`rounded-full border px-3 py-1 text-xs transition ${
+                  auditFilter === k
+                    ? "border-brand-600 bg-brand-50 font-medium text-brand-900"
+                    : "border-border text-muted-foreground hover:border-brand-600 hover:text-foreground"
+                }`}
+              >
+                {k === "all" ? "All activity" : AUDIT_GROUPS.find((g) => g.key === k)!.label}
+              </button>
+            ))}
+            <span className="ml-auto text-xs text-muted-foreground">{visibleAudit.length} of {auditRows.length} events</span>
+          </div>
+
+          <Card className="py-0">
+            <Table className="min-w-[680px] text-sm">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-40">When</TableHead>
+                  <TableHead className="w-44">Who</TableHead>
+                  <TableHead>What happened</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+              </TableHeader>
+              <TableBody>
+                {visibleAudit.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                      No activity of this kind recorded yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {visibleAudit.map((a) => {
+                  const style = AUDIT_STYLE[a.action] ?? "bg-slate-100 text-slate-700";
+                  return (
+                    <TableRow key={a.id} className="align-top">
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        <span className="block">{formatWhen(a.createdAt)}</span>
+                        <span className="block text-xs text-slate-400">{relativeTime(a.createdAt)}</span>
+                      </TableCell>
+                      <TableCell className="text-slate-700">{userLabel(a.userId)}</TableCell>
+                      <TableCell>
+                        <span className={`mr-2 inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${style}`}>
+                          {ACTION_LABEL[a.action] ?? a.action.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-slate-800">{describeAudit(a)}</span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Search terms are never stored — only a one-way hash, so the log proves a search happened without recording
+            what was asked.
+          </p>
+        </div>
       )}
 
       {tab === "usage" && (
