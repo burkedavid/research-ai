@@ -59,13 +59,20 @@ export function heuristicSentiment(content: string): Sentiment {
   return "neutral";
 }
 
+/**
+ * OpenAI's structured-output mode requires every property to appear in the
+ * schema's `required` array, so optional fields (`.default()`/`.optional()`)
+ * are rejected outright. Declare these two as required-but-nullable instead
+ * and normalise nulls after parsing — Anthropic accepts the same shape, so one
+ * schema serves both providers.
+ */
 const suggestionSchema = z.object({
   chunks: z.array(
     z.object({
       seq: z.number(),
       themes: z.array(z.object({ name: z.string(), confidence: z.number().min(0).max(1) })),
-      newThemeProposals: z.array(z.string()).default([]),
-      sentiment: z.enum(["positive", "negative", "neutral", "mixed"]).default("neutral"),
+      newThemeProposals: z.array(z.string()).nullable(),
+      sentiment: z.enum(["positive", "negative", "neutral", "mixed"]).nullable(),
       pii: z.array(
         z.object({
           text: z.string(),

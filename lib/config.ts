@@ -16,8 +16,10 @@ export const MODELS = {
  * IDs against `GET https://api.openai.com/v1/models` once a key is in hand.
  */
 export const OPENAI_MODELS = {
-  query: "gpt-4.1",
-  ingestion: "gpt-4.1-mini",
+  /** User-facing queries and report drafts (verified against /v1/models). */
+  query: "gpt-5.6-sol",
+  /** Ingestion metadata suggestion — high-volume, lower difficulty. */
+  ingestion: "gpt-5.6-luna",
 } as const;
 
 export const EMBEDDING = {
