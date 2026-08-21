@@ -6,6 +6,7 @@ import { AiText, markdownToPlainText } from "@/components/ai-text";
 import { PageHeader } from "@/components/page-header";
 import { ResearchLoader } from "@/components/research-loader";
 import type { FilterOptions } from "@/lib/services/filter-options";
+import type { AskSuggestion } from "@/lib/services/suggestions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,14 +100,37 @@ function TopicIcon({ name, className }: { name: string; className?: string }) {
   );
 }
 
-const SUGGESTED_CARDS = [
-  { icon: "trends", tint: "bg-sr-blue/10 text-sky-600", category: "Trends", question: "How has confidence changed between 2022 and 2026?", accent: "bg-sr-blue" },
-  { icon: "bank", tint: "bg-sr-purple/10 text-purple-600", category: "Banking", question: "Compare attitudes to banks before and after Covid", accent: "bg-sr-purple" },
-  { icon: "coins", tint: "bg-sr-orange/10 text-orange-600", category: "Cost of living", question: "What do consumers say about cutting back?", accent: "bg-sr-orange" },
-  { icon: "energy", tint: "bg-sr-yellow/10 text-amber-600", category: "Energy", question: "What were the biggest concerns during the energy crisis?", accent: "bg-sr-yellow" },
-  { icon: "optimism", tint: "bg-sr-green/10 text-green-600", category: "Optimism", question: "How have Rising Metropolitans talked about optimism since March 2020?", accent: "bg-sr-green" },
-  { icon: "trust", tint: "bg-sr-cyan/10 text-teal-600", category: "Trust", question: "Which segments talk most about trust and fairness?", accent: "bg-sr-cyan" },
+/**
+ * Styling for the suggestion cards. The questions themselves come from the
+ * database (derived from the indexed archive, or an admin override), so the
+ * look is chosen by position — an admin-authored card can never land on a
+ * missing icon and render as an empty box.
+ */
+const CARD_STYLES = [
+  { icon: "trends", tint: "bg-sr-blue/10 text-sky-600", accent: "bg-sr-blue" },
+  { icon: "coins", tint: "bg-sr-orange/10 text-orange-600", accent: "bg-sr-orange" },
+  { icon: "bank", tint: "bg-sr-purple/10 text-purple-600", accent: "bg-sr-purple" },
+  { icon: "energy", tint: "bg-sr-yellow/10 text-amber-600", accent: "bg-sr-yellow" },
+  { icon: "optimism", tint: "bg-sr-green/10 text-green-600", accent: "bg-sr-green" },
+  { icon: "trust", tint: "bg-sr-cyan/10 text-teal-600", accent: "bg-sr-cyan" },
 ];
+
+/** Prefer an icon that matches what the question is about, else fall back to position. */
+const ICON_HINTS: [RegExp, string][] = [
+  [/energy|fuel|heating|electric|gas|bill/i, "energy"],
+  [/bank|financial services|mortgage|savings|debt|budget/i, "bank"],
+  [/cost|price|inflation|spend|money|food|shop/i, "coins"],
+  [/trust|fair|confidence/i, "trust"],
+  [/optimis|hope|outlook|anxiet|resilience|mood/i, "optimism"],
+  [/chang|trend|over time|between \d{4}|since/i, "trends"],
+];
+
+function styleFor(suggestion: { category: string; question: string }, i: number) {
+  const base = CARD_STYLES[i % CARD_STYLES.length];
+  const text = `${suggestion.category} ${suggestion.question}`;
+  const hinted = ICON_HINTS.find(([re]) => re.test(text))?.[1];
+  return { ...base, icon: hinted ?? base.icon };
+}
 
 const RECENTS_KEY = "sr-recent-questions";
 
@@ -127,10 +151,12 @@ export function AskClient({
   options,
   initialQuestion,
   archiveStats,
+  suggestions,
 }: {
   options: FilterOptions;
   initialQuestion?: string;
   archiveStats: { waves: number; passages: number };
+  suggestions: AskSuggestion[];
 }) {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [question, setQuestion] = useState(initialQuestion ?? "");
@@ -405,7 +431,9 @@ export function AskClient({
           <div className="mt-8">
             <p className="text-sm font-semibold text-foreground">Suggested questions</p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {SUGGESTED_CARDS.map((card) => (
+              {suggestions.map((suggestion, i) => {
+                const card = { ...suggestion, ...styleFor(suggestion, i) };
+                return (
                 <button
                   key={card.question}
                   type="button"
@@ -423,7 +451,8 @@ export function AskClient({
                     <p className="mt-2 text-sm leading-5 text-foreground group-hover:text-brand-900">{card.question}</p>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             {recents.length > 0 && (

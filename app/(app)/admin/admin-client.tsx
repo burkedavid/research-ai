@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/native-select";
 import { PageHeader } from "@/components/page-header";
+import { SuggestionsPanel, type SuggestionSettings } from "./suggestions-panel";
 import {
   Table,
   TableBody,
@@ -118,7 +119,7 @@ interface ProposalRow {
   occurrences: number;
 }
 
-type Tab = "users" | "segments" | "themes" | "projects" | "audit" | "usage" | "retention";
+type Tab = "users" | "segments" | "themes" | "suggestions" | "projects" | "audit" | "usage" | "retention";
 
 /* ---------- audit log presentation ---------- */
 
@@ -257,6 +258,7 @@ export function AdminClient({
   usage,
   models,
   proposals,
+  suggestions,
 }: {
   currentUserId: string;
   users: UserRow[];
@@ -268,6 +270,7 @@ export function AdminClient({
   usage: Usage;
   models: ModelsProp;
   proposals: ProposalRow[];
+  suggestions: SuggestionSettings;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("users");
@@ -306,7 +309,7 @@ export function AdminClient({
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader icon="admin" title="Administration" subtitle="Users, taxonomy, audit, usage and retention." />
       <div className="mt-4 flex flex-wrap gap-1 border-b border-slate-200">
-        {(["users", "segments", "themes", "projects", "audit", "usage", "retention"] as Tab[]).map((t) => (
+        {(["users", "segments", "themes", "suggestions", "projects", "audit", "usage", "retention"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -621,6 +624,8 @@ export function AdminClient({
           </Card>
         </div>
       )}
+
+      {tab === "suggestions" && <SuggestionsPanel settings={suggestions} />}
 
       {tab === "projects" && (
         <div className="mt-4">

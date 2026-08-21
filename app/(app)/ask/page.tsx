@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { getFilterOptions } from "@/lib/services/filter-options";
+import { getAskSuggestions } from "@/lib/services/suggestions";
 import { requireUser } from "@/lib/session";
 import { AskClient } from "./ask-client";
 
@@ -9,7 +10,7 @@ export const metadata = { title: "Ask the Archive" };
 
 export default async function AskPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requireUser();
-  const options = await getFilterOptions();
+  const [options, suggestions] = await Promise.all([getFilterOptions(), getAskSuggestions()]);
   const { q } = await searchParams;
 
   const [stats] = (await db.execute(sql`
@@ -22,6 +23,7 @@ export default async function AskPage({ searchParams }: { searchParams: Promise<
     <AskClient
       options={options}
       initialQuestion={q}
+      suggestions={suggestions}
       archiveStats={{ waves: Number(stats.waves), passages: Number(stats.passages) }}
     />
   );

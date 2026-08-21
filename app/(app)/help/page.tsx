@@ -411,6 +411,12 @@ export default async function HelpPage() {
               accept or dismiss new themes the ingest AI proposes.
             </li>
             <li>
+              <strong>Suggestions</strong> — the example questions on Ask the Archive and the example searches on Find
+              Quotes. By default these are generated from the themes, segments and waves that are actually indexed, so
+              they always return something and never go stale as the archive grows. Override them here to use your own
+              wording, and reset to go back to the generated list.
+            </li>
+            <li>
               <strong>Projects</strong> — create clients and projects, set lawful basis and retention.
             </li>
             <li>

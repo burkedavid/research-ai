@@ -14,15 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const SUGGESTED_SEARCHES = [
-  "cutting back",
-  "heating and energy bills",
-  "trust in banks",
-  "food shopping habits",
-  "hopes for the future",
-  "money worries",
-];
-
 /** soft pastel tints from the Sentiment Research mark */
 const SUGGESTION_TINTS = [
   "border-sr-orange/40 bg-sr-orange/10 text-orange-900 hover:bg-sr-orange/20",
@@ -59,7 +50,16 @@ function whenLabel(q: { reportDate: string | null; wave: string }): string {
   return q.wave;
 }
 
-export function QuotesClient({ options, hasTranscriptAccess }: { options: FilterOptions; hasTranscriptAccess: boolean }) {
+export function QuotesClient({
+  options,
+  hasTranscriptAccess,
+  suggestions,
+}: {
+  options: FilterOptions;
+  hasTranscriptAccess: boolean;
+  /** starter searches derived from the indexed archive, or an admin override */
+  suggestions: string[];
+}) {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [query, setQuery] = useState("");
   const [quotes, setQuotes] = useState<Quote[] | null>(null);
@@ -211,7 +211,7 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
             <div className="w-full max-w-xl text-center">
               <p className="text-sm font-medium text-muted-foreground">Popular verbatim searches…</p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {SUGGESTED_SEARCHES.map((s, i) => (
+                {suggestions.map((s, i) => (
                   <button
                     key={s}
                     type="button"
