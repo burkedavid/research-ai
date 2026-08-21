@@ -8,6 +8,7 @@ import { audit } from "@/lib/audit";
 import { VERSIONS, estimateGbp } from "@/lib/config";
 import type { SessionUser } from "@/lib/errors";
 import { getLlm } from "@/lib/llm";
+import { resolveModel } from "@/lib/services/model-settings";
 import { ASK_SYSTEM_PROMPT, PROMPT_VERSION, buildAskUserMessage } from "@/lib/prompts/ask";
 import { computeEvidentialBasis } from "@/lib/retrieval/confidence";
 import { searchChunks, type SearchFilters } from "@/lib/retrieval/search";
@@ -75,7 +76,7 @@ export async function runAsk(params: {
     ip: params.ip,
   });
 
-  const { model, modelId } = getLlm("query");
+  const { model, modelId } = getLlm("query", await resolveModel("query"));
   const encoder = new TextEncoder();
   const send = (controller: ReadableStreamDefaultController<Uint8Array>, obj: unknown) =>
     controller.enqueue(encoder.encode(`${JSON.stringify(obj)}\n`));

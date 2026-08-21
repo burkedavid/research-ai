@@ -8,6 +8,7 @@ import { audit } from "@/lib/audit";
 import { VERSIONS } from "@/lib/config";
 import type { SessionUser } from "@/lib/errors";
 import { getLlm } from "@/lib/llm";
+import { resolveModel } from "@/lib/services/model-settings";
 import { ASK_SYSTEM_PROMPT, PROMPT_VERSION, buildAskUserMessage } from "@/lib/prompts/ask";
 import { computeEvidentialBasis, type EvidentialBasis } from "@/lib/retrieval/confidence";
 import { searchChunks, type SearchFilters } from "@/lib/retrieval/search";
@@ -71,7 +72,8 @@ async function generateSection(params: {
     };
   }
 
-  const { model } = getLlm("query");
+  const chosen = await resolveModel("query");
+  const { model, modelId: usedModel } = getLlm("query", chosen);
   const result = await generateText({
     model,
     system: ASK_SYSTEM_PROMPT,
@@ -82,7 +84,7 @@ async function generateSection(params: {
   });
   await recordAiUsage({
     kind: "chat",
-    model: getLlm("query").modelId,
+    model: usedModel,
     feature: "report",
     inputTokens: result.usage.inputTokens ?? 0,
     outputTokens: result.usage.outputTokens ?? 0,
@@ -118,7 +120,7 @@ export async function generateReport(params: {
   ip?: string | null;
 }): Promise<ReportDraft> {
   const { user, template } = params;
-  const { modelId } = getLlm("query");
+  const { modelId } = getLlm("query", await resolveModel("query"));
   let totalIn = 0;
   let totalOut = 0;
   let embeddingModel = "";

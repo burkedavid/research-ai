@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/native-select";
 import { PageHeader } from "@/components/page-header";
 import {
   Table,
@@ -99,6 +100,17 @@ const FEATURE_LABEL: Record<string, string> = {
   search_query: "Search query embeddings",
   reembed: "Re-embedding",
 };
+
+interface ModelChoice {
+  current: string;
+  overridden: boolean;
+  default: string;
+}
+interface ModelsProp {
+  selectable: { id: string; inputUsd: number; outputUsd: number }[];
+  query: ModelChoice;
+  ingestion: ModelChoice;
+}
 
 interface ProposalRow {
   id: string;
@@ -243,6 +255,7 @@ export function AdminClient({
   segments,
   clients,
   usage,
+  models,
   proposals,
 }: {
   currentUserId: string;
@@ -253,6 +266,7 @@ export function AdminClient({
   segments: SegmentRow[];
   clients: ClientRow[];
   usage: Usage;
+  models: ModelsProp;
   proposals: ProposalRow[];
 }) {
   const router = useRouter();
@@ -791,6 +805,44 @@ export function AdminClient({
 
       {tab === "usage" && (
         <div className="mt-4 space-y-4">
+          <Card>
+            <CardContent>
+              <p className="text-sm font-semibold text-brand-900">Models in use</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Change the model a job uses and the next request picks it up — no redeploy. Prices are per 1M tokens, so
+                you can trial a cheaper model on real work and judge quality against the saving yourself.
+              </p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {(["query", "ingestion"] as const).map((job) => (
+                  <label key={job} className="block text-sm">
+                    <span className="mb-1 block text-xs font-medium text-foreground">
+                      {job === "query" ? "Answers, comparisons & reports" : "Ingestion tagging"}
+                    </span>
+                    <Select
+                      value={models[job].current}
+                      onChange={(e) =>
+                        call("/api/admin/models", "PATCH", {
+                          job,
+                          model: e.target.value === models[job].default ? null : e.target.value,
+                        })
+                      }
+                    >
+                      {models.selectable.length === 0 && <option value="">provider has no selectable models</option>}
+                      {models.selectable.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.id} — ${m.inputUsd}/${m.outputUsd} per 1M
+                        </option>
+                      ))}
+                    </Select>
+                    <span className="mt-1 block text-[11px] text-muted-foreground">
+                      {models[job].overridden ? `overridden — default is ${models[job].default}` : "using the default"}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <Card>
               <CardContent>

@@ -2,6 +2,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { recordAiUsage } from "@/lib/ai-usage";
 import { getLlm } from "@/lib/llm";
+import { resolveModel } from "@/lib/services/model-settings";
 import { env } from "@/lib/env";
 import type { ChunkDraft } from "./chunk";
 
@@ -164,7 +165,7 @@ export async function suggestMetadata(
     };
   }
 
-  const { model, modelId } = getLlm("ingestion");
+  const { model, modelId } = getLlm("ingestion", await resolveModel("ingestion"));
   const prompt = [
     "You label qualitative research chunks for a research archive.",
     `Controlled theme taxonomy: ${themeNames.join("; ")}.`,

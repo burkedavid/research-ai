@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { auditLog, clients, themes, users } from "@/db/schema";
 import { getUsageSummary } from "@/lib/services/admin";
+import { defaultModel, getModelOverrides, selectableModels } from "@/lib/services/model-settings";
 import { listThemeProposals } from "@/lib/services/themes";
 import { getSessionUser } from "@/lib/session";
 import { AdminClient } from "./admin-client";
@@ -21,7 +22,7 @@ export default async function AdminPage() {
     );
   }
 
-  const [userRows, themeRows, auditRows, projectRows, segmentRows, clientRows, usage, proposals] = await Promise.all([
+  const [userRows, themeRows, auditRows, projectRows, segmentRows, clientRows, usage, modelOverrides, proposals] = await Promise.all([
     db.select().from(users).orderBy(users.email),
     db.select().from(themes).orderBy(themes.name),
     db.select().from(auditLog).orderBy(desc(auditLog.createdAt)).limit(200),
@@ -48,6 +49,7 @@ export default async function AdminPage() {
     `) as unknown as Promise<Record<string, unknown>[]>,
     db.select().from(clients).orderBy(clients.name),
     getUsageSummary(),
+    getModelOverrides(),
     listThemeProposals(),
   ]);
 
@@ -96,6 +98,11 @@ export default async function AdminPage() {
       }))}
       clients={clientRows.map((c) => ({ id: c.id, name: c.name, notes: c.notes }))}
       usage={usage}
+      models={{
+        selectable: selectableModels(),
+        query: { current: modelOverrides.query ?? defaultModel("query"), overridden: Boolean(modelOverrides.query), default: defaultModel("query") },
+        ingestion: { current: modelOverrides.ingestion ?? defaultModel("ingestion"), overridden: Boolean(modelOverrides.ingestion), default: defaultModel("ingestion") },
+      }}
       proposals={proposals.map((p) => ({ id: p.id, name: p.name, occurrences: p.occurrences }))}
     />
   );

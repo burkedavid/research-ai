@@ -319,6 +319,18 @@ export const savedOutputs = pgTable("saved_outputs", {
 });
 
 /**
+ * Small key/value store for settings an admin can change at runtime — chiefly
+ * which model each job uses, so provider/model choices can be trialled without
+ * a redeploy. Values are strings; callers parse.
+ */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: uuid("updated_by").references(() => users.id),
+});
+
+/**
  * Ledger of EVERY billable AI call — chat completions and embeddings alike.
  * Token counts come straight from the provider response, so they are exact;
  * the £ figure is derived from the rate table in lib/config.ts and is an

@@ -18,8 +18,8 @@ export interface LlmHandle {
  * OpenAI/Anthropic-compatible gateway (LiteLLM passes /v1/messages through),
  * or the deterministic fake for dev/tests. Swapping is configuration only.
  */
-export function getLlm(kind: ModelKind): LlmHandle {
-  const modelId = MODELS[kind];
+export function getLlm(kind: ModelKind, override?: string): LlmHandle {
+  const modelId = override ?? MODELS[kind];
   switch (env.LLM_PROVIDER) {
     case "anthropic": {
       const provider = createAnthropic({ apiKey: env.ANTHROPIC_API_KEY });
@@ -28,9 +28,10 @@ export function getLlm(kind: ModelKind): LlmHandle {
     case "openai": {
       const provider = createOpenAI({ apiKey: env.OPENAI_API_KEY });
       const openaiId =
-        kind === "query"
+        override ??
+        (kind === "query"
           ? (env.OPENAI_QUERY_MODEL ?? OPENAI_MODELS.query)
-          : (env.OPENAI_INGESTION_MODEL ?? OPENAI_MODELS.ingestion);
+          : (env.OPENAI_INGESTION_MODEL ?? OPENAI_MODELS.ingestion));
       return { model: provider(openaiId) as unknown as LanguageModelV3, modelId: openaiId };
     }
     case "gateway": {

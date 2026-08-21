@@ -71,6 +71,13 @@
       "when": 1787325712179,
       "tag": "0009_usage-usd",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787325967344,
+      "tag": "0010_app-settings",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { audit } from "@/lib/audit";
 import { VERSIONS } from "@/lib/config";
 import type { SessionUser } from "@/lib/errors";
 import { getLlm } from "@/lib/llm";
+import { resolveModel } from "@/lib/services/model-settings";
 import { COMPARE_PROMPT_VERSION, COMPARE_SYSTEM_PROMPT, buildCompareUserMessage } from "@/lib/prompts/compare";
 import { computeEvidentialBasis, type EvidentialBasis } from "@/lib/retrieval/confidence";
 import { searchChunks, type SearchFilters } from "@/lib/retrieval/search";
@@ -63,7 +64,7 @@ export async function comparePeriods(params: {
     ip: params.ip,
   });
 
-  const { model, modelId } = getLlm("query");
+  const { model, modelId } = getLlm("query", await resolveModel("query"));
   const result = await generateText({
     model,
     system: COMPARE_SYSTEM_PROMPT,
