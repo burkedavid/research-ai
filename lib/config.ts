@@ -41,7 +41,10 @@ export const EMBEDDING = {
 export const COST_PER_MTOK_GBP: Record<string, { input: number; output: number }> = {
   "claude-sonnet-4-6": { input: 2.4, output: 12.0 },
   "claude-haiku-4-5-20251001": { input: 0.8, output: 4.0 },
-  // OpenAI (approx GBP; update if you change OPENAI_MODELS)
+  // OpenAI (approx GBP; update if you change OPENAI_MODELS). Without an entry
+  // the admin cost summary silently reports £0, so keep these in step.
+  "gpt-5.6-sol": { input: 1.0, output: 8.0 },
+  "gpt-5.6-luna": { input: 0.2, output: 1.6 },
   "gpt-4.1": { input: 1.6, output: 6.4 },
   "gpt-4.1-mini": { input: 0.32, output: 1.28 },
   "fake-llm": { input: 0, output: 0 },
