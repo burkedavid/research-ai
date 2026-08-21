@@ -114,7 +114,17 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
                   {d.error && <span className="ml-2 text-xs text-destructive">{d.error}</span>}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
-                  {d.parseWarnings ? `${(d.parseWarnings as unknown[]).length} warning(s)` : "—"}
+                  {Array.isArray(d.parseWarnings) && d.parseWarnings.length > 0 ? (
+                    <Link
+                      href={`/library/documents/${d.id}`}
+                      title={(d.parseWarnings as { message: string }[]).map((w) => w.message).join("\n")}
+                      className="text-amber-700 underline underline-offset-2"
+                    >
+                      {d.parseWarnings.length} warning{d.parseWarnings.length === 1 ? "" : "s"} — open to view
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
               </TableRow>
             ))}

@@ -65,9 +65,15 @@ export async function parseDocx(buffer: Buffer): Promise<ParseResult> {
   const warnings: ParseWarning[] = [];
   const result = await mammoth.convertToHtml({ buffer });
   for (const m of result.messages) {
-    if (m.type === "warning") {
-      warnings.push({ code: "unreadable_region", message: m.message });
+    if (m.type !== "warning") continue;
+    // Mammoth reports cosmetic conversion details — an unmapped paragraph
+    // style, an ignored drawing/shape — that have no effect on the extracted
+    // text. Surfacing them told researchers to "check against the original"
+    // when nothing was wrong, which trains people to ignore real warnings.
+    if (/^Unrecognised paragraph style|^Unrecognised run style|^An unrecognised element was ignored/i.test(m.message)) {
+      continue;
     }
+    warnings.push({ code: "unreadable_region", message: m.message });
   }
 
   const blocks: ParsedBlock[] = [];
