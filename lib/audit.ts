@@ -11,7 +11,12 @@ export type AuditAction =
   | "export"
   | "permission_change"
   | "delete"
-  | "theme_edit";
+  | "theme_edit"
+  // reference-data administration (§A14): the taxonomy and the client/project
+  // structure are material changes, so they are audited like theme edits
+  | "segment_edit"
+  | "client_edit"
+  | "project_edit";
 
 /**
  * The single write path to audit_log (§B5). Insert-only by construction:

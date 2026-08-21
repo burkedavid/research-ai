@@ -1,7 +1,7 @@
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { auditLog, projects, themes, users } from "@/db/schema";
+import { auditLog, clients, themes, users } from "@/db/schema";
 import { getUsageSummary } from "@/lib/services/admin";
 import { listThemeProposals } from "@/lib/services/themes";
 import { getSessionUser } from "@/lib/session";
@@ -21,11 +21,32 @@ export default async function AdminPage() {
     );
   }
 
-  const [userRows, themeRows, auditRows, projectRows, usage, proposals] = await Promise.all([
+  const [userRows, themeRows, auditRows, projectRows, segmentRows, clientRows, usage, proposals] = await Promise.all([
     db.select().from(users).orderBy(users.email),
     db.select().from(themes).orderBy(themes.name),
     db.select().from(auditLog).orderBy(desc(auditLog.createdAt)).limit(200),
-    db.select().from(projects),
+    // projects carry their client + wave counts so the tab is self-explanatory
+    db.execute(sql`
+      SELECT p.id, p.name, p.lawful_basis, p.retention_months,
+             c.id AS client_id, c.name AS client_name,
+             count(w.id)::int AS wave_count
+      FROM projects p
+      JOIN clients c ON c.id = p.client_id
+      LEFT JOIN waves w ON w.project_id = p.id
+      GROUP BY p.id, p.name, p.lawful_basis, p.retention_months, c.id, c.name
+      ORDER BY c.name, p.name
+    `) as unknown as Promise<Record<string, unknown>[]>,
+    // usage counts make unmatched segments (0 chunks) obvious at a glance
+    db.execute(sql`
+      SELECT s.id, s.name, s.description,
+             count(DISTINCT c.id)::int AS chunk_count,
+             count(DISTINCT c.interview_id)::int AS interview_count
+      FROM segments s
+      LEFT JOIN chunks c ON c.segment_id = s.id
+      GROUP BY s.id, s.name, s.description
+      ORDER BY s.name
+    `) as unknown as Promise<Record<string, unknown>[]>,
+    db.select().from(clients).orderBy(clients.name),
     getUsageSummary(),
     listThemeProposals(),
   ]);
@@ -57,7 +78,23 @@ export default async function AdminPage() {
         detail: a.detail as Record<string, unknown> | null,
         createdAt: a.createdAt.toISOString(),
       }))}
-      projects={projectRows.map((p) => ({ id: p.id, name: p.name, retentionMonths: p.retentionMonths }))}
+      projects={projectRows.map((p) => ({
+        id: String(p.id),
+        name: String(p.name),
+        retentionMonths: (p.retention_months as number | null) ?? null,
+        lawfulBasis: (p.lawful_basis as string | null) ?? null,
+        clientId: String(p.client_id),
+        clientName: String(p.client_name),
+        waveCount: Number(p.wave_count ?? 0),
+      }))}
+      segments={segmentRows.map((s) => ({
+        id: String(s.id),
+        name: String(s.name),
+        description: (s.description as string | null) ?? null,
+        chunkCount: Number(s.chunk_count ?? 0),
+        interviewCount: Number(s.interview_count ?? 0),
+      }))}
+      clients={clientRows.map((c) => ({ id: c.id, name: c.name, notes: c.notes }))}
       usage={usage}
       proposals={proposals.map((p) => ({ id: p.id, name: p.name, occurrences: p.occurrences }))}
     />

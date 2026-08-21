@@ -47,6 +47,24 @@ interface ProjectRow {
   id: string;
   name: string;
   retentionMonths: number | null;
+  lawfulBasis: string | null;
+  clientId: string;
+  clientName: string;
+  waveCount: number;
+}
+
+interface SegmentRow {
+  id: string;
+  name: string;
+  description: string | null;
+  chunkCount: number;
+  interviewCount: number;
+}
+
+interface ClientRow {
+  id: string;
+  name: string;
+  notes: string | null;
 }
 
 interface Usage {
@@ -61,7 +79,7 @@ interface ProposalRow {
   occurrences: number;
 }
 
-type Tab = "users" | "themes" | "audit" | "usage" | "retention";
+type Tab = "users" | "segments" | "themes" | "projects" | "audit" | "usage" | "retention";
 
 export function AdminClient({
   currentUserId,
@@ -69,6 +87,8 @@ export function AdminClient({
   themes,
   auditRows,
   projects,
+  segments,
+  clients,
   usage,
   proposals,
 }: {
@@ -77,6 +97,8 @@ export function AdminClient({
   themes: ThemeRow[];
   auditRows: AuditRow[];
   projects: ProjectRow[];
+  segments: SegmentRow[];
+  clients: ClientRow[];
   usage: Usage;
   proposals: ProposalRow[];
 }) {
@@ -102,7 +124,7 @@ export function AdminClient({
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader icon="admin" title="Administration" subtitle="Users, taxonomy, audit, usage and retention." />
       <div className="mt-4 flex flex-wrap gap-1 border-b border-slate-200">
-        {(["users", "themes", "audit", "usage", "retention"] as Tab[]).map((t) => (
+        {(["users", "segments", "themes", "projects", "audit", "usage", "retention"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -310,6 +332,227 @@ export function AdminClient({
               </Card>
             ))}
           </div>
+        </div>
+      )}
+
+      {tab === "segments" && (
+        <div className="mt-4">
+          <Card>
+            <CardContent>
+              <p className="text-sm font-semibold text-brand-900">Consumer segments</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Reports attribute verbatim inline as <em>(Segment, Region)</em>. A segment showing{" "}
+                <strong>0 passages</strong> means report attributions aren&apos;t matching that name — check the spelling
+                used in the reports, or merge it into the segment it should be.
+              </p>
+              <form
+                className="mt-3 flex flex-wrap items-end gap-2"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = new FormData(e.currentTarget);
+                  const ok = await call("/api/admin/segments", "POST", {
+                    name: form.get("name"),
+                    description: form.get("description") || undefined,
+                  });
+                  if (ok) (e.target as HTMLFormElement).reset();
+                }}
+              >
+                <Input name="name" required placeholder="segment name" className="w-auto" />
+                <Input name="description" placeholder="description (optional)" className="w-auto" />
+                <Button type="submit">Add segment</Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4 py-0">
+            <Table className="min-w-[720px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Segment</TableHead>
+                  <TableHead>Passages</TableHead>
+                  <TableHead>Interviews</TableHead>
+                  <TableHead>Merge into…</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {segments.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell>
+                      <input
+                        defaultValue={s.name}
+                        onBlur={(e) => e.target.value !== s.name && call("/api/admin/segments", "PATCH", { segmentId: s.id, name: e.target.value })}
+                        className="w-48 rounded border border-transparent px-1 py-0.5 text-sm font-medium text-slate-900 hover:border-input focus:border-input focus:outline-none"
+                      />
+                      <input
+                        defaultValue={s.description ?? ""}
+                        placeholder="add a description"
+                        onBlur={(e) =>
+                          e.target.value !== (s.description ?? "") &&
+                          call("/api/admin/segments", "PATCH", { segmentId: s.id, description: e.target.value || null })
+                        }
+                        className="mt-0.5 block w-72 rounded border border-transparent px-1 py-0.5 text-xs text-muted-foreground hover:border-input focus:border-input focus:outline-none"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {s.chunkCount === 0 ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">0 — unmatched</span>
+                      ) : (
+                        <span className="text-sm tabular-nums text-slate-700">{s.chunkCount}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm tabular-nums text-muted-foreground">{s.interviewCount}</TableCell>
+                    <TableCell>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const target = segments.find((x) => x.id === e.target.value);
+                          if (
+                            target &&
+                            confirm(`Merge "${s.name}" into "${target.name}"? ${s.chunkCount} passage(s) will be re-attributed and "${s.name}" removed.`)
+                          ) {
+                            call("/api/admin/segments", "PUT", { sourceId: s.id, targetId: target.id });
+                          }
+                          e.target.value = "";
+                        }}
+                        className="h-7 rounded-lg border border-input bg-transparent px-1.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        <option value="">—</option>
+                        {segments
+                          .filter((x) => x.id !== s.id)
+                          .map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.name}
+                            </option>
+                          ))}
+                      </select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
+      )}
+
+      {tab === "projects" && (
+        <div className="mt-4">
+          <Card>
+            <CardContent>
+              <p className="text-sm font-semibold text-brand-900">Clients</p>
+              <form
+                className="mt-3 flex flex-wrap items-end gap-2"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = new FormData(e.currentTarget);
+                  const ok = await call("/api/admin/clients", "POST", {
+                    name: form.get("name"),
+                    notes: form.get("notes") || undefined,
+                  });
+                  if (ok) (e.target as HTMLFormElement).reset();
+                }}
+              >
+                <Input name="name" required placeholder="client name" className="w-auto" />
+                <Input name="notes" placeholder="notes (optional)" className="w-auto" />
+                <Button type="submit">Add client</Button>
+              </form>
+              <ul className="mt-3 space-y-1 text-sm">
+                {clients.map((c) => (
+                  <li key={c.id} className="flex items-center gap-2">
+                    <input
+                      defaultValue={c.name}
+                      onBlur={(e) => e.target.value !== c.name && call("/api/admin/clients", "PATCH", { clientId: c.id, name: e.target.value })}
+                      className="rounded border border-transparent px-1 py-0.5 font-medium text-slate-900 hover:border-input focus:border-input focus:outline-none"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {projects.filter((p) => p.clientId === c.id).length} project(s)
+                    </span>
+                  </li>
+                ))}
+                {clients.length === 0 && <li className="text-muted-foreground">No clients yet.</li>}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4">
+            <CardContent>
+              <p className="text-sm font-semibold text-brand-900">Projects</p>
+              <form
+                className="mt-3 flex flex-wrap items-end gap-2"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = new FormData(e.currentTarget);
+                  const months = form.get("retentionMonths");
+                  const ok = await call("/api/admin/projects", "POST", {
+                    clientId: form.get("clientId"),
+                    name: form.get("name"),
+                    lawfulBasis: form.get("lawfulBasis") || undefined,
+                    retentionMonths: months ? Number(months) : null,
+                  });
+                  if (ok) (e.target as HTMLFormElement).reset();
+                }}
+              >
+                <select
+                  name="clientId"
+                  required
+                  className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <Input name="name" required placeholder="project name" className="w-auto" />
+                <Input name="lawfulBasis" placeholder="lawful basis (optional)" className="w-auto" />
+                <Input name="retentionMonths" type="number" min={1} max={600} placeholder="retention months" className="w-auto" />
+                <Button type="submit" disabled={clients.length === 0}>
+                  Add project
+                </Button>
+              </form>
+              {clients.length === 0 && (
+                <p className="mt-2 text-xs text-amber-700">Add a client first — every project belongs to one.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4 py-0">
+            <Table className="min-w-[720px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Waves</TableHead>
+                  <TableHead>Lawful basis</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projects.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <input
+                        defaultValue={p.name}
+                        onBlur={(e) => e.target.value !== p.name && call("/api/admin/projects", "PATCH", { projectId: p.id, name: e.target.value })}
+                        className="w-48 rounded border border-transparent px-1 py-0.5 text-sm font-medium text-slate-900 hover:border-input focus:border-input focus:outline-none"
+                      />
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.clientName}</TableCell>
+                    <TableCell className="text-sm tabular-nums text-muted-foreground">{p.waveCount}</TableCell>
+                    <TableCell>
+                      <input
+                        defaultValue={p.lawfulBasis ?? ""}
+                        placeholder="—"
+                        onBlur={(e) =>
+                          e.target.value !== (p.lawfulBasis ?? "") &&
+                          call("/api/admin/projects", "PATCH", { projectId: p.id, lawfulBasis: e.target.value || null })
+                        }
+                        className="w-56 rounded border border-transparent px-1 py-0.5 text-xs text-muted-foreground hover:border-input focus:border-input focus:outline-none"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         </div>
       )}
 
