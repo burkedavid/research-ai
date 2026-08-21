@@ -21,8 +21,14 @@ const registerSchema = z
       "debrief_deck",
       "coding_frame",
       "tabular",
+      "reference_data",
       "other",
     ]),
+    // third-party provenance (reference_data): who published it, under what
+    // licence, and where it came from
+    publisher: z.string().max(200).optional(),
+    licence: z.string().max(200).optional(),
+    sourceUrl: z.string().max(500).optional(),
   })
   .refine((b) => b.waveId || b.autoDateProjectId, {
     message: "Either waveId or autoDateProjectId is required",

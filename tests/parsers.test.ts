@@ -222,3 +222,30 @@ describe("PII regexes (§B6.3)", () => {
     expect(regexPii("Interview RM_F_07_2026 discussed banking.")).toEqual([]);
   });
 });
+
+describe("third-party reference data is context, never consumer voice", () => {
+  it("never emits direct_quote chunks, even when the document contains quotations", () => {
+    const blocks = [
+      { text: "Household finances", style: "heading" as const, sectionPath: "Household finances" },
+      { text: "Real household disposable income rose 0.4% in the quarter.", style: "body" as const, sectionPath: "Household finances" },
+      // a quotation inside a published report — NOT one of our consumers
+      { text: "“Households remain under pressure despite easing inflation.”", style: "body" as const, sectionPath: "Household finances" },
+      { text: "(Rising Metropolitans, North)", style: "body" as const, sectionPath: "Household finances" },
+    ];
+    const chunks = chunkBlocks(blocks, "reference_data");
+    expect(chunks.length).toBeGreaterThan(0);
+    expect(chunks.every((c) => c.evidenceType === "context")).toBe(true);
+    // crucially: no segment attribution is harvested from third-party text
+    expect(chunks.every((c) => !c.segmentName)).toBe(true);
+  });
+
+  it("still extracts attributed quotes from our own reports", () => {
+    const blocks = [
+      { text: "Mood", style: "heading" as const, sectionPath: "Mood" },
+      { text: "“Everything costs more but my wages have not moved.”", style: "body" as const, sectionPath: "Mood" },
+      { text: "(Rising Metropolitans, North)", style: "body" as const, sectionPath: "Mood" },
+    ];
+    const chunks = chunkBlocks(blocks, "report");
+    expect(chunks.some((c) => c.evidenceType === "direct_quote" && c.segmentName === "Rising Metropolitans")).toBe(true);
+  });
+});

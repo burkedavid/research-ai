@@ -16,6 +16,7 @@ export type SourceType =
   | "debrief_deck"
   | "coding_frame"
   | "tabular"
+  | "reference_data"
   | "other";
 
 /**

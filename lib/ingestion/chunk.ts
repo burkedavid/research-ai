@@ -82,6 +82,10 @@ const EVIDENCE_BY_SOURCE: Record<SourceType, EvidenceType> = {
   debrief_deck: "researcher_summary",
   coding_frame: "context",
   tabular: "context",
+  // Third-party statistics and published reports are CONTEXT, never
+  // researcher_summary or direct_quote — those carry consumer-voice meaning
+  // through retrieval, generation and the confidence statement.
+  reference_data: "context",
   other: "context",
 };
 
@@ -172,7 +176,13 @@ function chunkTranscript(blocks: ParsedBlock[]): ChunkDraft[] {
  * Document chunking (§B6.2): sections split at heading boundaries; paragraphs
  * within a section merge up to the max. Never fixed-window mid-sentence splits.
  */
-function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): ChunkDraft[] {
+function chunkDocument(
+  blocks: ParsedBlock[],
+  evidenceType: EvidenceType,
+  /** false for third-party sources: a quotation inside a statistics report is
+   *  not consumer voice, and must never become a direct_quote chunk */
+  extractQuotes = true,
+): ChunkDraft[] {
   const chunks: ChunkDraft[] = [];
   let section: string | null = null;
   let pageRef: string | null = null;
@@ -227,7 +237,7 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
     if (block.pageRef) pageRef = block.pageRef;
 
     // inline attribution: "quote text (Segment, Region)"
-    const inline = parseAttribution(block.text);
+    const inline = extractQuotes ? parseAttribution(block.text) : null;
     if (inline) {
       flush();
       emitQuote(inline.quote, inline.segment, inline.region);
@@ -235,7 +245,7 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
     }
     // standalone attribution on the next line: previous paragraph is the quote
     const next = blocks[i + 1];
-    const standalone = next && next.style !== "heading" ? parseStandaloneAttribution(next.text) : null;
+    const standalone = extractQuotes && next && next.style !== "heading" ? parseStandaloneAttribution(next.text) : null;
     if (standalone) {
       flush();
       emitQuote(block.text, standalone.segment, standalone.region);
@@ -243,7 +253,7 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
       continue;
     }
     // unattributed verbatim: a block that is wholly a quotation (item 9)
-    if (isFullQuotation(block.text)) {
+    if (extractQuotes && isFullQuotation(block.text)) {
       flush();
       emitQuote(block.text, null, null);
       continue;
@@ -283,5 +293,5 @@ function chunkDocument(blocks: ParsedBlock[], evidenceType: EvidenceType): Chunk
 
 export function chunkBlocks(blocks: ParsedBlock[], sourceType: SourceType): ChunkDraft[] {
   if (sourceType === "transcript") return chunkTranscript(blocks);
-  return chunkDocument(blocks, EVIDENCE_BY_SOURCE[sourceType]);
+  return chunkDocument(blocks, EVIDENCE_BY_SOURCE[sourceType], sourceType !== "reference_data");
 }

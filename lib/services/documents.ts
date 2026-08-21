@@ -31,6 +31,10 @@ export async function registerUpload(params: {
   filename: string;
   mimeType: string;
   sourceType: SourceType;
+  /** third-party provenance, recorded when sourceType is 'reference_data' */
+  publisher?: string;
+  licence?: string;
+  sourceUrl?: string;
   ip?: string | null;
 }): Promise<{ documentId: string; version: number; waveId: string; reportDate: string | null }> {
   const { user } = params;
@@ -96,6 +100,9 @@ export async function registerUpload(params: {
       version: previous ? previous.version + 1 : 1,
       supersedes: previous?.id ?? null,
       sourceType: params.sourceType,
+      publisher: params.publisher ?? null,
+      licence: params.licence ?? null,
+      sourceUrl: params.sourceUrl ?? null,
       reportDate,
       status: "uploaded",
       uploadedBy: user.id,

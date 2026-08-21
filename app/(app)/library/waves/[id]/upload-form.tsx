@@ -14,6 +14,7 @@ const SOURCE_TYPES = [
   ["debrief_deck", "Debrief deck (PowerPoint)"],
   ["coding_frame", "Coding frame"],
   ["tabular", "Tabular data (Excel/CSV)"],
+  ["reference_data", "Third-party data / published stats"],
   ["other", "Other"],
 ] as const;
 
@@ -30,6 +31,12 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [sourceType, setSourceType] = useState<string>("transcript");
+  // third-party provenance — required so attribution and redistribution
+  // rights travel with the document rather than living in someone's memory
+  const [publisher, setPublisher] = useState("");
+  const [licence, setLicence] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const isReference = sourceType === "reference_data";
   const [statuses, setStatuses] = useState<UploadStatus[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -73,6 +80,7 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
             filename: file.name,
             mimeType: file.type || "application/octet-stream",
             sourceType,
+            ...(isReference ? { publisher, licence, sourceUrl } : {}),
           }),
         });
         if (!res.ok) {
@@ -99,6 +107,39 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {isReference && (
+          <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs text-amber-900">
+              Third-party material is stored as <strong>context, not consumer voice</strong> — it is excluded from
+              interview and wave counts, labelled on every citation, and the AI is instructed never to present it as
+              something consumers said. Record the publisher and licence so attribution and redistribution rights stay
+              with the document. Check the licence permits use in a client-facing tool before uploading.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <input
+                value={publisher}
+                onChange={(e) => setPublisher(e.target.value)}
+                placeholder="Publisher (e.g. ONS)"
+                aria-label="Publisher"
+                className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
+              />
+              <input
+                value={licence}
+                onChange={(e) => setLicence(e.target.value)}
+                placeholder="Licence (e.g. OGL v3.0)"
+                aria-label="Licence"
+                className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
+              />
+              <input
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="Source URL"
+                aria-label="Source URL"
+                className="h-8 min-w-56 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring"
+              />
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <select
             value={sourceType}

@@ -36,6 +36,10 @@ export const sourceTypeEnum = pgEnum("source_type", [
   "debrief_deck",
   "coding_frame",
   "tabular",
+  // Third-party material: published statistics, industry reports, open data.
+  // NOT consumer voice from our fieldwork — excluded from qualitative counts
+  // and always labelled at the point of citation (§A6.3 evidence hierarchy).
+  "reference_data",
   "other",
 ]);
 export const documentStatusEnum = pgEnum("document_status", [
@@ -164,6 +168,12 @@ export const documents = pgTable(
     reportDate: date("report_date"),
     status: documentStatusEnum("status").notNull().default("uploaded"),
     error: text("error"),
+    // provenance for third-party sources (source_type='reference_data'):
+    // who published it and under what licence, so attribution can be honoured
+    // and redistribution rights are recorded with the document itself
+    publisher: text("publisher"),
+    licence: text("licence"),
+    sourceUrl: text("source_url"),
     parseWarnings: jsonb("parse_warnings"),
     ingestUsage: jsonb("ingest_usage"),
     uploadedBy: uuid("uploaded_by")

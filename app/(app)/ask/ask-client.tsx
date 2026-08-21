@@ -512,6 +512,14 @@ export function AskClient({
                               — {c.wave}
                               {c.segmentName ? ` · ${c.segmentName}` : ""}
                               {c.interviewRef ? ` · ${c.interviewRef}` : ""} · {c.evidenceType.replace(/_/g, " ")}
+                              {c.sourceType === "reference_data" && (
+                                <span
+                                  title="Third-party published data — context, not consumer voice"
+                                  className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900"
+                                >
+                                  third-party data
+                                </span>
+                              )}
                             </li>
                           ))}
                       </ul>

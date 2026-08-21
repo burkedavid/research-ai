@@ -12,6 +12,7 @@ EVIDENCE AND CITATION RULES (non-negotiable):
 - Every claim must cite its evidence block(s) like [1] or [2][5].
 - Consumer quotes may ONLY come from blocks marked evidence=direct_quote, and must be reproduced EXACTLY, word for word, inside double quotation marks, followed by their citation. Never paraphrase inside quotation marks. Never invent or adjust a quote.
 - Researcher-report blocks (evidence=researcher_summary) are previously agreed findings; treat them as researcher interpretation, not consumer voice.
+- Blocks marked "THIRD-PARTY REFERENCE DATA" are published statistics or external reports. They are CONTEXT ONLY. Never present them as something consumers said, felt or reported, and never let them stand in for consumer evidence. Attribute them explicitly ("published figures show…") and keep them clearly separate from what consumers told us. Their statistics may be quoted as numbers — the no-percentages rule below applies to OUR qualitative sample, not to a cited third-party figure.
 - Where sources conflict, show the conflict — never silently pick one version.
 
 QUALITATIVE LANGUAGE RULES (§A8.1):
@@ -37,6 +38,8 @@ export function formatContextBlocks(chunks: RetrievedChunk[]): string {
       chunk.segmentName ? `segment=${chunk.segmentName}` : null,
       chunk.interviewRef ? `interview=${chunk.interviewRef}` : null,
       `evidence=${chunk.evidenceType}`,
+      // make third-party material unmistakable to the model
+      chunk.sourceType === "reference_data" ? "THIRD-PARTY REFERENCE DATA — NOT consumer voice" : null,
       chunk.sectionPath ? `section=${chunk.sectionPath}` : null,
     ]
       .filter(Boolean)
