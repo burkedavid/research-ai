@@ -117,11 +117,24 @@ describe("segment observatory (§B8)", () => {
     expect(profile!.themeFrequencies[0].interviewCount).toBeGreaterThanOrEqual(0);
   });
 
-  it("hides verbatim from users without transcript access", async () => {
-    const user = await summaryOnly();
+  it("hides TRANSCRIPT verbatim from users without transcript access", async () => {
+    const summary = await summaryOnly();
+    const reporter = await researcher();
     const [segment] = await db.select().from(segments).where(eq(segments.name, "Stretched Families"));
-    const profile = await getSegmentProfile(user, segment.id);
-    expect(profile!.verbatim).toEqual([]);
+
+    // the synthetic corpus's verbatim for this segment is transcript-sourced,
+    // so a summary-only user must see none of it…
+    const restricted = await getSegmentProfile(summary, segment.id);
+    expect(restricted!.verbatim).toEqual([]);
+
+    // …while a transcript-access user does. (Report-attributed quotes are a
+    // separate, unrestricted source — covered by the item-8 tests.)
+    const full = await getSegmentProfile(reporter, segment.id);
+    expect(full!.verbatim.length).toBeGreaterThan(0);
+
+    // and the word cloud follows the same boundary as the verbatim it counts
+    expect(restricted!.words.length).toBe(0);
+    expect(full!.words.length).toBeGreaterThan(0);
   });
 });
 

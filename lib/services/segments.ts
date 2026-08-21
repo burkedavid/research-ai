@@ -64,32 +64,44 @@ export async function getSegmentProfile(user: SessionUser, segmentId: string) {
     ORDER BY w.year, w.month
   `)) as unknown as { wave: string; theme_name: string; chunk_count: number }[];
 
-  // recent verbatim: latest-wave consumer turns (ACL enforced in SQL)
-  const verbatim = user.transcriptAccess
-    ? ((await db.execute(sql`
-        SELECT c.id AS chunk_id, c.content, c.document_id,
-               i.external_ref AS interview_ref,
-               w.year || '-' || lpad(w.month::text, 2, '0') AS wave
-        FROM chunks c
-        JOIN documents d ON d.id = c.document_id
-        JOIN waves w ON w.id = c.wave_id
-        LEFT JOIN interviews i ON i.id = c.interview_id
-        WHERE c.segment_id = ${segmentId}
-          AND d.status = 'indexed'
-          AND d.source_type = 'transcript'
-          AND c.evidence_type = 'direct_quote'
-        ORDER BY w.year DESC, w.month DESC, c.seq
-        LIMIT 8
-      `)) as unknown as { chunk_id: string; content: string; document_id: string; interview_ref: string | null; wave: string }[])
-    : [];
+  // Recent verbatim: consumer voice for this segment. Includes verbatim quoted
+  // in REPORTS (attributed inline as "(Segment, Region)"), which every user may
+  // see, plus raw transcript turns only for users with transcript_access — the
+  // ACL stays in the SQL. A reports-only archive still gets consumer voice here.
+  const verbatim = (await db.execute(sql`
+    SELECT c.id AS chunk_id, c.content, c.document_id, d.source_type,
+           i.external_ref AS interview_ref,
+           w.year || '-' || lpad(w.month::text, 2, '0') AS wave
+    FROM chunks c
+    JOIN documents d ON d.id = c.document_id
+    JOIN waves w ON w.id = c.wave_id
+    LEFT JOIN interviews i ON i.id = c.interview_id
+    WHERE c.segment_id = ${segmentId}
+      AND d.status = 'indexed'
+      AND c.evidence_type = 'direct_quote'
+      ${user.transcriptAccess ? sql`` : sql`AND d.source_type <> 'transcript'`}
+    ORDER BY w.year DESC, w.month DESC, c.seq
+    LIMIT 8
+  `)) as unknown as {
+    chunk_id: string;
+    content: string;
+    document_id: string;
+    source_type: string;
+    interview_ref: string | null;
+    wave: string;
+  }[];
 
-  // consumer language for the word cloud (transcript-gated)
+  // Consumer language for the word cloud. Transcript chunks interleave
+  // MODERATOR/CONSUMER turns so only consumer lines count; report quotes are
+  // already pure consumer voice, so the whole chunk counts.
   const wordCounts = new Map<string, number>();
   for (const row of verbatim) {
-    const consumerText = row.content
-      .split("\n")
-      .filter((l) => l.startsWith("CONSUMER:"))
-      .join(" ");
+    const consumerText = row.content.includes("CONSUMER:")
+      ? row.content
+          .split("\n")
+          .filter((l) => l.startsWith("CONSUMER:"))
+          .join(" ")
+      : row.content;
     for (const raw of consumerText.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/)) {
       if (raw.length < 4 || STOPWORDS.has(raw) || raw === "consumer") continue;
       wordCounts.set(raw, (wordCounts.get(raw) ?? 0) + 1);
