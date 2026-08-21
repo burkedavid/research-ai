@@ -66,6 +66,18 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: "No. Identical re-uploads are refused, and a corrected file with the same name becomes version 2, with version 1 preserved. Deleting a document (admins only) removes its file, text and search index completely, and is recorded in the audit log.",
   },
   {
+    q: "Can I add ONS or other published statistics?",
+    a: "Yes — upload with the source type “Third-party data / published stats” and record the publisher, licence and URL. It is stored as context only: it can never become a consumer quote, it is excluded from interview and wave counts, and every citation from it is badged “third-party data”. Check the licence allows use in a client-facing tool — Open Government Licence material is generally fine with attribution; most subscription research is not, even if you can read it free.",
+  },
+  {
+    q: "How much is the AI costing, and can we spend less?",
+    a: "Administration → Usage & cost shows total spend, this month, and which activity the money goes on — including embeddings, which are billed on every search as well as on ingestion. Admins can also switch the model used for answers or for ingestion tagging, with prices shown as you choose; models differ several-fold in price, so trialling a cheaper one on a real briefing is worthwhile.",
+  },
+  {
+    q: "A segment shows no evidence — what's wrong?",
+    a: "Check Administration → Segments. A segment reading “0 — unmatched” means your reports' (Segment, Region) attributions aren't matching that spelling. Either rename the segment to match the reports, or merge it into the one it duplicates.",
+  },
+  {
     q: "Why do answers never give percentages?",
     a: "Qualitative samples are small by design. The system is required to use cautious research language — many, several, a few — and to never dress up counts as statistical prevalence. That's a feature of the evidence standards, not a limitation.",
   },
@@ -83,6 +95,8 @@ const GLOSSARY = [
   ["Evidential basis", "The narrative confidence statement computed from how much evidence supports an answer."],
   ["Citation [1]", "A numbered link from a claim to the exact source passage it came from."],
   ["Review gate", "The human check every uploaded document passes before it becomes searchable."],
+  ["Third-party data", "Published statistics or external reports uploaded as context. Never counted as consumer voice, never quotable as verbatim, always badged at the citation."],
+  ["Audit log", "The insert-only record of every material action — sign-ins, uploads, approvals, searches, exports, permission changes."],
 ];
 
 function SectionCard({ accent, title, children }: { accent: string; title: string; children: React.ReactNode }) {
@@ -251,6 +265,10 @@ export default async function HelpPage() {
               <Link href="/library" className="font-medium underline">Library</Link> — waves, uploads, the review
               queue, source documents and your saved outputs.
             </li>
+            <li>
+              <Link href="/admin" className="font-medium underline">Administration</Link> (admins) — users, segments,
+              themes, clients and projects, the audit log, and AI usage &amp; cost including which model is in use.
+            </li>
           </ul>
         </SectionCard>
 
@@ -318,6 +336,28 @@ export default async function HelpPage() {
           </ul>
         </SectionCard>
 
+        <SectionCard accent="bg-sr-purple" title="Third-party data & published statistics">
+          <p>
+            Free external material — ONS releases, industry reports, open data — can be uploaded alongside your own
+            research. Choose the source type <strong>Third-party data / published stats</strong>, and record the
+            publisher, licence and source URL so attribution travels with the document.
+          </p>
+          <p>
+            It is deliberately treated as <strong>context, never consumer voice</strong>, and the system enforces that
+            rather than relying on anyone remembering:
+          </p>
+          <ul className="list-disc space-y-2 pl-5">
+            <li>It can never become a consumer quote — even a quotation printed inside a statistics report is ignored by the verbatim extractor.</li>
+            <li>It is excluded from interview, wave and segment counts, so a single data release can&apos;t make a theme look like it surged. Any reference passages used are reported separately beneath the answer.</li>
+            <li>Every citation from it carries a <strong>third-party data</strong> badge, and the AI is instructed to attribute it explicitly (&ldquo;published figures show…&rdquo;) and never present it as something consumers said.</li>
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            One thing the software can&apos;t check for you: whether the licence permits use in a client-facing tool.
+            Open Government Licence material is generally fine with attribution; most paywalled or subscription
+            research is not, even when you can read it for free.
+          </p>
+        </SectionCard>
+
         <SectionCard accent="bg-sr-green" title="Reading the answers">
           <ul className="list-disc space-y-2 pl-5">
             <li>
@@ -348,6 +388,65 @@ export default async function HelpPage() {
               a statistical measure of how many consumers feel a certain way.
             </li>
           </ul>
+        </SectionCard>
+
+        <SectionCard accent="bg-sr-orange" title="Administration (admins only)">
+          <p>
+            <Link href="/admin" className="font-medium underline">Administration</Link> is where the archive is
+            configured — no developer or reseeding required.
+          </p>
+          <ul className="list-disc space-y-2 pl-5">
+            <li>
+              <strong>Users</strong> — add people, set role (viewer / researcher / admin), grant or remove transcript
+              access, deactivate accounts.
+            </li>
+            <li>
+              <strong>Segments</strong> — add, rename, describe and merge consumer segments. Each shows how many
+              passages it has: a segment reading <strong>0 — unmatched</strong> means your reports&apos; (Segment,
+              Region) attributions aren&apos;t matching that spelling, which is the quickest way to spot an ingestion
+              problem.
+            </li>
+            <li>
+              <strong>Themes</strong> — add and define themes, merge duplicates (traceable, never destructive), and
+              accept or dismiss new themes the ingest AI proposes.
+            </li>
+            <li>
+              <strong>Projects</strong> — create clients and projects, set lawful basis and retention.
+            </li>
+            <li>
+              <strong>Audit log</strong> — a plain-English record of every sign-in, upload, approval, search, export and
+              permission change. Search terms themselves are never stored, only a one-way hash.
+            </li>
+            <li>
+              <strong>Usage &amp; cost</strong> — see below.
+            </li>
+          </ul>
+          <p>
+            Waves can also be corrected in the <Link href="/library" className="font-medium underline">Library</Link>:
+            open a draft wave to fix its number, month, year or key events. A confirmed wave is locked, and an empty
+            wave (say, one created by a mistyped filename during bulk upload) can be deleted by an admin.
+          </p>
+        </SectionCard>
+
+        <SectionCard accent="bg-sr-blue" title="AI cost & choosing a model">
+          <p>
+            <strong>Usage &amp; cost</strong> in Administration accounts for <em>every</em> billable AI call — answers,
+            comparisons, reports, ingestion tagging, and the embeddings behind both ingestion and every single search.
+            You get total spend, this month, last 30 days, a chat-versus-embeddings split, and a breakdown of which
+            activity the money actually goes on.
+          </p>
+          <p>
+            Token counts are exact, taken from each provider response. Prices are held in the provider&apos;s own
+            currency (USD) and converted to £ at that day&apos;s exchange rate, so figures always read in today&apos;s
+            money and can be reconciled against an invoice. The rate card shows every price and where it came from; if
+            a model has no price configured, the page says so rather than quietly counting it as free.
+          </p>
+          <p>
+            <strong>Changing model.</strong> Admins can switch the model used for answers and for ingestion tagging,
+            with each option&apos;s price shown at the point of choosing. The change takes effect on the next request —
+            no redeploy. Models differ several-fold in price, so it is worth running the same briefing on two of them
+            and judging quality against the saving yourself.
+          </p>
         </SectionCard>
 
         <SectionCard accent="bg-sr-cyan" title="Evidence standards (why answers sound cautious)">
