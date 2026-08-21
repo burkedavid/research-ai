@@ -82,7 +82,7 @@ interface Usage {
   };
   uncostedModels: string[];
   rates: { model: string; inputUsd: number; outputUsd: number; inputGbp: number; outputGbp: number; verified: boolean; source: string | null }[];
-  fxNote: string;
+  fx: { rate: number; date: string; live: boolean; note: string };
   retrieval: { searches: number; weakSearches: number };
   ingestion: { documents: number };
 }
@@ -913,7 +913,7 @@ export function AdminClient({
               <p className="text-sm font-semibold text-brand-900">Rate card</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Token counts above are exact, taken from each provider response. Providers publish and bill in USD, so
-                prices are held in USD and converted — {usage.fxNote}.
+                prices are held in USD and converted to £ at today's rate — {usage.fx.note}.
               </p>
               <Table className="mt-3 min-w-[420px] text-xs">
                 <TableHeader>

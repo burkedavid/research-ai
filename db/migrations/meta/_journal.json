@@ -64,6 +64,13 @@
       "when": 1787324557539,
       "tag": "0008_ai-usage-ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787325712179,
+      "tag": "0009_usage-usd",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { COST_PER_MTOK_USD, FX_NOTE, USD_TO_GBP } from "@/lib/config";
+import { COST_PER_MTOK_USD } from "@/lib/config";
+import { getUsdToGbp } from "@/lib/fx";
 
 /**
  * Complete AI spend picture (§B8 admin): EVERY billable call — chat and
@@ -17,10 +18,10 @@ export async function getUsageSummary() {
            count(*)::int AS calls,
            coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
            coalesce(sum(output_tokens), 0)::bigint AS output_tokens,
-           coalesce(sum(est_cost_gbp), 0)::numeric AS est_cost_gbp
+           coalesce(sum(est_cost_usd), 0)::numeric AS est_cost_usd
     FROM ai_usage
     GROUP BY day, model, kind
-    ORDER BY day DESC, est_cost_gbp DESC
+    ORDER BY day DESC, est_cost_usd DESC
     LIMIT 120
   `)) as unknown as Record<string, string>[];
 
@@ -29,17 +30,17 @@ export async function getUsageSummary() {
            kind,
            count(*)::int AS calls,
            coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
-           coalesce(sum(est_cost_gbp), 0)::numeric AS est_cost_gbp
+           coalesce(sum(est_cost_usd), 0)::numeric AS est_cost_usd
     FROM ai_usage
     GROUP BY feature, kind
-    ORDER BY est_cost_gbp DESC
+    ORDER BY est_cost_usd DESC
   `)) as unknown as Record<string, string>[];
 
   const [totals] = (await db.execute(sql`
     SELECT count(*)::int AS calls,
            coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
            coalesce(sum(output_tokens), 0)::bigint AS output_tokens,
-           coalesce(sum(est_cost_gbp), 0)::numeric AS est_cost_gbp,
+           coalesce(sum(est_cost_usd), 0)::numeric AS est_cost_usd,
            coalesce(sum(est_cost_gbp) FILTER (WHERE kind = 'chat'), 0)::numeric AS chat_gbp,
            coalesce(sum(est_cost_gbp) FILTER (WHERE kind = 'embedding'), 0)::numeric AS embedding_gbp,
            coalesce(sum(est_cost_gbp) FILTER (WHERE created_at >= date_trunc('month', now())), 0)::numeric AS month_gbp,
@@ -62,7 +63,10 @@ export async function getUsageSummary() {
     SELECT count(*)::int AS documents FROM documents WHERE status = 'indexed'
   `)) as unknown as { documents: number }[];
 
+  const fx = await getUsdToGbp();
   const n = (v: unknown) => Number(v ?? 0);
+  /** every figure reported to the UI is £, converted at today's rate */
+  const gbp = (v: unknown) => Number(v ?? 0) * fx.rate;
 
   return {
     byDay: byDay.map((r) => ({
@@ -72,24 +76,24 @@ export async function getUsageSummary() {
       calls: n(r.calls),
       inputTokens: n(r.input_tokens),
       outputTokens: n(r.output_tokens),
-      estCostGbp: n(r.est_cost_gbp),
+      estCostGbp: gbp(r.est_cost_usd),
     })),
     byFeature: byFeature.map((r) => ({
       feature: r.feature,
       kind: r.kind,
       calls: n(r.calls),
       tokens: n(r.tokens),
-      estCostGbp: n(r.est_cost_gbp),
+      estCostGbp: gbp(r.est_cost_usd),
     })),
     totals: {
       calls: n(totals?.calls),
       inputTokens: n(totals?.input_tokens),
       outputTokens: n(totals?.output_tokens),
-      estCostGbp: n(totals?.est_cost_gbp),
-      chatGbp: n(totals?.chat_gbp),
-      embeddingGbp: n(totals?.embedding_gbp),
-      monthGbp: n(totals?.month_gbp),
-      last30Gbp: n(totals?.last30_gbp),
+      estCostGbp: gbp(totals?.est_cost_usd),
+      chatGbp: gbp(totals?.chat_usd),
+      embeddingGbp: gbp(totals?.embedding_usd),
+      monthGbp: gbp(totals?.month_usd),
+      last30Gbp: gbp(totals?.last30_usd),
     },
     uncostedModels,
     /** the rate card the £ figures were derived from, so they're auditable */
@@ -97,12 +101,19 @@ export async function getUsageSummary() {
       model,
       inputUsd: r.input,
       outputUsd: r.output,
-      inputGbp: r.input * USD_TO_GBP,
-      outputGbp: r.output * USD_TO_GBP,
+      inputGbp: r.input * fx.rate,
+      outputGbp: r.output * fx.rate,
       verified: Boolean(r.verified),
       source: r.source ?? null,
     })),
-    fxNote: FX_NOTE,
+    fx: {
+      rate: fx.rate,
+      date: fx.date,
+      live: fx.live,
+      note: fx.live
+        ? `USD→GBP ${fx.rate.toFixed(4)} — ECB reference rate for ${fx.date}`
+        : `USD→GBP ${fx.rate.toFixed(4)} — live rate unavailable, using last known value`,
+    },
     retrieval: { searches: n(retrieval?.searches), weakSearches: n(retrieval?.weak_searches) },
     ingestion: { documents: n(ingestion?.documents) },
   };

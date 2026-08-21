@@ -1,0 +1,1 @@
+ALTER TABLE "ai_usage" ADD COLUMN "est_cost_usd" numeric(12, 6) DEFAULT '0' NOT NULL;

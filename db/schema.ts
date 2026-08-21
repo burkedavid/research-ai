@@ -337,6 +337,11 @@ export const aiUsage = pgTable(
     feature: text("feature").notNull(),
     inputTokens: integer("input_tokens").notNull().default(0),
     outputTokens: integer("output_tokens").notNull().default(0),
+    // USD is what the provider actually bills; £ is derived at display time
+    // using the day's FX rate, so historical spend always reads in today's
+    // money and can be reconciled against an invoice.
+    estCostUsd: numeric("est_cost_usd", { precision: 12, scale: 6 }).notNull().default("0"),
+    /** @deprecated superseded by estCostUsd — kept so no history is lost */
     estCostGbp: numeric("est_cost_gbp", { precision: 12, scale: 6 }).notNull().default("0"),
     userId: uuid("user_id").references(() => users.id),
     documentId: uuid("document_id"),

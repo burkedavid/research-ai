@@ -93,8 +93,7 @@ export const COST_PER_MTOK_USD: Record<string, Rate> = {
  * part of the estimate. Override with USD_TO_GBP when the rate drifts or to
  * match the rate your card issuer actually applied.
  */
-export const USD_TO_GBP = Number(process.env.USD_TO_GBP ?? 0.7323);
-export const FX_NOTE = "USD→GBP 0.7323 (21 Aug 2026); set USD_TO_GBP to override";
+export const USD_TO_GBP_FALLBACK = Number(process.env.USD_TO_GBP ?? 0.7323);
 
 /** Estimated USD for a call, or null when the model has no published rate —
  *  so callers report it as uncosted rather than pretending it was free. */
@@ -104,10 +103,15 @@ export function estimateUsd(model: string, inputTokens: number, outputTokens: nu
   return (inputTokens * rate.input + outputTokens * rate.output) / 1_000_000;
 }
 
-/** Estimated £ for a call (USD price × FX). Null when the model has no rate. */
-export function estimateGbp(model: string, inputTokens: number, outputTokens: number): number | null {
+/** Estimated £ at a given FX rate. Null when the model has no published rate. */
+export function estimateGbp(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  usdToGbp: number = USD_TO_GBP_FALLBACK,
+): number | null {
   const usd = estimateUsd(model, inputTokens, outputTokens);
-  return usd === null ? null : usd * USD_TO_GBP;
+  return usd === null ? null : usd * usdToGbp;
 }
 
 export const RETRIEVAL = {
