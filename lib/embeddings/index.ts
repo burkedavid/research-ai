@@ -1,3 +1,4 @@
+import { approxTokens } from "@/lib/ai-usage";
 import { EMBEDDING } from "@/lib/config";
 import { env } from "@/lib/env";
 
@@ -7,6 +8,10 @@ export interface EmbeddingsProvider {
   /** Model identifier recorded on messages for provenance (§B5). */
   model: string;
   embed(texts: string[], inputType: EmbeddingInputType): Promise<number[][]>;
+  /** Prompt tokens billed by the most recent embed() call. Exact when the
+   *  provider reports usage; approximated otherwise. Read immediately after
+   *  embed() so embedding spend can be recorded in the ai_usage ledger. */
+  lastTokens(): number;
 }
 
 /**
@@ -43,18 +48,23 @@ function fakeProvider(): EmbeddingsProvider {
     const norm = Math.sqrt(v.reduce((a, b) => a + b * b, 0)) || 1;
     return v.map((x) => x / norm);
   };
+  let tokens = 0;
   return {
     model,
     async embed(texts) {
+      tokens = approxTokens(texts);
       return texts.map(embedOne);
     },
+    lastTokens: () => tokens,
   };
 }
 
 function voyageProvider(): EmbeddingsProvider {
   const model = EMBEDDING.models.voyage;
+  let tokens = 0;
   return {
     model,
+    lastTokens: () => tokens,
     async embed(texts, inputType) {
       const res = await fetch("https://api.voyageai.com/v1/embeddings", {
         method: "POST",
@@ -72,7 +82,11 @@ function voyageProvider(): EmbeddingsProvider {
       if (!res.ok) {
         throw new Error(`Voyage embeddings failed: ${res.status} ${await res.text()}`);
       }
-      const body = (await res.json()) as { data: { index: number; embedding: number[] }[] };
+      const body = (await res.json()) as {
+        data: { index: number; embedding: number[] }[];
+        usage?: { total_tokens?: number };
+      };
+      tokens = body.usage?.total_tokens ?? approxTokens(texts);
       return body.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
     },
   };
@@ -86,8 +100,10 @@ function voyageProvider(): EmbeddingsProvider {
  */
 export function openaiProvider(): EmbeddingsProvider {
   const model = EMBEDDING.models.openai;
+  let tokens = 0;
   return {
     model,
+    lastTokens: () => tokens,
     async embed(texts) {
       const res = await fetch("https://api.openai.com/v1/embeddings", {
         method: "POST",
@@ -104,7 +120,12 @@ export function openaiProvider(): EmbeddingsProvider {
       if (!res.ok) {
         throw new Error(`OpenAI embeddings failed: ${res.status} ${await res.text()}`);
       }
-      const body = (await res.json()) as { data: { index: number; embedding: number[] }[] };
+      const body = (await res.json()) as {
+        data: { index: number; embedding: number[] }[];
+        usage?: { prompt_tokens?: number; total_tokens?: number };
+      };
+      // OpenAI reports exact prompt tokens for embeddings — use them
+      tokens = body.usage?.prompt_tokens ?? body.usage?.total_tokens ?? approxTokens(texts);
       return body.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
     },
   };

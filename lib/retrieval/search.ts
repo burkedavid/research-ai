@@ -3,6 +3,7 @@ import { sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { retrievalLog } from "@/db/schema";
 import { RETRIEVAL } from "@/lib/config";
+import { recordAiUsage } from "@/lib/ai-usage";
 import { getEmbeddings } from "@/lib/embeddings";
 import type { SessionUser } from "@/lib/errors";
 
@@ -190,6 +191,15 @@ export async function searchChunks(params: {
 
   const embeddings = getEmbeddings();
   const [queryVector] = await embeddings.embed([query], "query");
+  // every search embeds its query — a small but constant cost that must be
+  // in the ledger, or per-search spend looks free
+  await recordAiUsage({
+    kind: "embedding",
+    model: embeddings.model,
+    feature: "search_query",
+    inputTokens: embeddings.lastTokens(),
+    userId: user.id,
+  });
   const vectorLiteral = `[${queryVector.join(",")}]`;
 
   const vectorRows = (await db.execute(sql`

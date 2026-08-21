@@ -37,18 +37,51 @@ export const EMBEDDING = {
   },
 } as const;
 
-/** Rough £/1M tokens for the admin cost summary — estimates, not billing. */
-export const COST_PER_MTOK_GBP: Record<string, { input: number; output: number }> = {
+/**
+ * £ per 1M tokens, used to turn exact token counts into an estimated spend.
+ *
+ * IMPORTANT — accuracy: token counts in the ai_usage ledger come straight from
+ * the provider response and are exact. These PRICES are the only estimated
+ * part, so keep them current from the provider's own pricing page and set
+ * `verified` once you have checked a figure against a real invoice. Anything
+ * left unverified is flagged in the admin summary rather than presented as
+ * fact. A model with no entry at all is reported separately as uncosted — it
+ * must never silently contribute £0 to a budget.
+ *
+ * Embedding models bill on input tokens only (output is 0).
+ */
+export interface Rate {
+  input: number;
+  output: number;
+  /** true once checked against an actual provider invoice */
+  verified?: boolean;
+}
+
+export const COST_PER_MTOK_GBP: Record<string, Rate> = {
   "claude-sonnet-4-6": { input: 2.4, output: 12.0 },
   "claude-haiku-4-5-20251001": { input: 0.8, output: 4.0 },
-  // OpenAI (approx GBP; update if you change OPENAI_MODELS). Without an entry
-  // the admin cost summary silently reports £0, so keep these in step.
+  // OpenAI chat — update from platform.openai.com/docs/pricing
   "gpt-5.6-sol": { input: 1.0, output: 8.0 },
   "gpt-5.6-luna": { input: 0.2, output: 1.6 },
+  "gpt-5.6-terra": { input: 0.5, output: 4.0 },
   "gpt-4.1": { input: 1.6, output: 6.4 },
   "gpt-4.1-mini": { input: 0.32, output: 1.28 },
-  "fake-llm": { input: 0, output: 0 },
+  // Embeddings — input-only billing
+  "text-embedding-3-large": { input: 0.104, output: 0 },
+  "text-embedding-3-small": { input: 0.016, output: 0 },
+  "voyage-3.5-lite": { input: 0.016, output: 0 },
+  // keyless dev providers genuinely cost nothing
+  "fake-llm": { input: 0, output: 0, verified: true },
+  "fake-embeddings-1024": { input: 0, output: 0, verified: true },
 };
+
+/** Estimated £ for a call. Returns null when the model has no rate, so the
+ *  caller can report it as uncosted instead of pretending it was free. */
+export function estimateGbp(model: string, inputTokens: number, outputTokens: number): number | null {
+  const rate = COST_PER_MTOK_GBP[model];
+  if (!rate) return null;
+  return (inputTokens * rate.input + outputTokens * rate.output) / 1_000_000;
+}
 
 export const RETRIEVAL = {
   /** Candidates fetched per leg before fusion (§B7). */

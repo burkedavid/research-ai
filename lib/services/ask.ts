@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { streamText } from "ai";
 import { db } from "@/db";
 import { conversations, messages, retrievalLog } from "@/db/schema";
+import { recordAiUsage } from "@/lib/ai-usage";
 import { audit } from "@/lib/audit";
 import { COST_PER_MTOK_GBP, VERSIONS } from "@/lib/config";
 import type { SessionUser } from "@/lib/errors";
@@ -97,6 +98,15 @@ export async function runAsk(params: {
         const usage = await result.usage;
         const inputTokens = usage.inputTokens ?? 0;
         const outputTokens = usage.outputTokens ?? 0;
+
+        await recordAiUsage({
+          kind: "chat",
+          model: modelId,
+          feature: "ask",
+          inputTokens,
+          outputTokens,
+          userId: user.id,
+        });
 
         const [assistantMessage] = await db
           .insert(messages)

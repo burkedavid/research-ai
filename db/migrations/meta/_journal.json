@@ -57,6 +57,13 @@
       "when": 1785854327286,
       "tag": "0007_chunk-region",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787324557539,
+      "tag": "0008_ai-usage-ledger",
+      "breakpoints": true
     }
   ]
 }

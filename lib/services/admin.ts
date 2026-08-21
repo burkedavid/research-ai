@@ -1,22 +1,56 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
+import { COST_PER_MTOK_GBP } from "@/lib/config";
 
-/** Usage & cost summary (§B8 /admin): everything derives from messages.usage,
- *  documents.ingest_usage and retrieval_log — no extra tracking schema. */
+/**
+ * Complete AI spend picture (§B8 admin): EVERY billable call — chat and
+ * embeddings, user-facing and ingestion — read from the ai_usage ledger.
+ * Token counts are exact (straight from provider responses); the £ figures
+ * are derived from the rate table, so unpriced models are reported separately
+ * rather than silently counted as free.
+ */
 export async function getUsageSummary() {
   const byDay = (await db.execute(sql`
     SELECT to_char(created_at, 'YYYY-MM-DD') AS day,
            model,
-           count(*)::int AS messages,
-           coalesce(sum((usage->>'input_tokens')::bigint), 0)::bigint AS input_tokens,
-           coalesce(sum((usage->>'output_tokens')::bigint), 0)::bigint AS output_tokens,
-           coalesce(sum((usage->>'est_cost_gbp')::numeric), 0)::numeric AS est_cost_gbp
-    FROM messages
-    WHERE role = 'assistant' AND usage IS NOT NULL
-    GROUP BY day, model
-    ORDER BY day DESC
-    LIMIT 60
-  `)) as unknown as { day: string; model: string; messages: number; input_tokens: string; output_tokens: string; est_cost_gbp: string }[];
+           kind,
+           count(*)::int AS calls,
+           coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
+           coalesce(sum(output_tokens), 0)::bigint AS output_tokens,
+           coalesce(sum(est_cost_gbp), 0)::numeric AS est_cost_gbp
+    FROM ai_usage
+    GROUP BY day, model, kind
+    ORDER BY day DESC, est_cost_gbp DESC
+    LIMIT 120
+  `)) as unknown as Record<string, string>[];
+
+  const byFeature = (await db.execute(sql`
+    SELECT feature,
+           kind,
+           count(*)::int AS calls,
+           coalesce(sum(input_tokens + output_tokens), 0)::bigint AS tokens,
+           coalesce(sum(est_cost_gbp), 0)::numeric AS est_cost_gbp
+    FROM ai_usage
+    GROUP BY feature, kind
+    ORDER BY est_cost_gbp DESC
+  `)) as unknown as Record<string, string>[];
+
+  const [totals] = (await db.execute(sql`
+    SELECT count(*)::int AS calls,
+           coalesce(sum(input_tokens), 0)::bigint AS input_tokens,
+           coalesce(sum(output_tokens), 0)::bigint AS output_tokens,
+           coalesce(sum(est_cost_gbp), 0)::numeric AS est_cost_gbp,
+           coalesce(sum(est_cost_gbp) FILTER (WHERE kind = 'chat'), 0)::numeric AS chat_gbp,
+           coalesce(sum(est_cost_gbp) FILTER (WHERE kind = 'embedding'), 0)::numeric AS embedding_gbp,
+           coalesce(sum(est_cost_gbp) FILTER (WHERE created_at >= date_trunc('month', now())), 0)::numeric AS month_gbp,
+           coalesce(sum(est_cost_gbp) FILTER (WHERE created_at >= now() - interval '30 days'), 0)::numeric AS last30_gbp
+    FROM ai_usage
+  `)) as unknown as Record<string, string>[];
+
+  // models seen in the ledger that have no rate — their spend is unknown, and
+  // saying "£0" would understate the budget
+  const models = (await db.execute(sql`SELECT DISTINCT model FROM ai_usage`)) as unknown as { model: string }[];
+  const uncostedModels = models.map((m) => m.model).filter((m) => !COST_PER_MTOK_GBP[m]);
 
   const [retrieval] = (await db.execute(sql`
     SELECT count(*)::int AS searches,
@@ -25,27 +59,47 @@ export async function getUsageSummary() {
   `)) as unknown as { searches: number; weak_searches: number }[];
 
   const [ingestion] = (await db.execute(sql`
-    SELECT count(*)::int AS documents,
-           coalesce(sum((ingest_usage->>'inputTokens')::bigint), 0)::bigint AS input_tokens,
-           coalesce(sum((ingest_usage->>'outputTokens')::bigint), 0)::bigint AS output_tokens
-    FROM documents
-    WHERE ingest_usage IS NOT NULL
-  `)) as unknown as { documents: number; input_tokens: string; output_tokens: string }[];
+    SELECT count(*)::int AS documents FROM documents WHERE status = 'indexed'
+  `)) as unknown as { documents: number }[];
+
+  const n = (v: unknown) => Number(v ?? 0);
 
   return {
     byDay: byDay.map((r) => ({
       day: r.day,
       model: r.model,
-      messages: Number(r.messages),
-      inputTokens: Number(r.input_tokens),
-      outputTokens: Number(r.output_tokens),
-      estCostGbp: Number(r.est_cost_gbp),
+      kind: r.kind,
+      calls: n(r.calls),
+      inputTokens: n(r.input_tokens),
+      outputTokens: n(r.output_tokens),
+      estCostGbp: n(r.est_cost_gbp),
     })),
-    retrieval: { searches: Number(retrieval?.searches ?? 0), weakSearches: Number(retrieval?.weak_searches ?? 0) },
-    ingestion: {
-      documents: Number(ingestion?.documents ?? 0),
-      inputTokens: Number(ingestion?.input_tokens ?? 0),
-      outputTokens: Number(ingestion?.output_tokens ?? 0),
+    byFeature: byFeature.map((r) => ({
+      feature: r.feature,
+      kind: r.kind,
+      calls: n(r.calls),
+      tokens: n(r.tokens),
+      estCostGbp: n(r.est_cost_gbp),
+    })),
+    totals: {
+      calls: n(totals?.calls),
+      inputTokens: n(totals?.input_tokens),
+      outputTokens: n(totals?.output_tokens),
+      estCostGbp: n(totals?.est_cost_gbp),
+      chatGbp: n(totals?.chat_gbp),
+      embeddingGbp: n(totals?.embedding_gbp),
+      monthGbp: n(totals?.month_gbp),
+      last30Gbp: n(totals?.last30_gbp),
     },
+    uncostedModels,
+    /** the rate card the £ figures were derived from, so they're auditable */
+    rates: Object.entries(COST_PER_MTOK_GBP).map(([model, r]) => ({
+      model,
+      input: r.input,
+      output: r.output,
+      verified: Boolean(r.verified),
+    })),
+    retrieval: { searches: n(retrieval?.searches), weakSearches: n(retrieval?.weak_searches) },
+    ingestion: { documents: n(ingestion?.documents) },
   };
 }

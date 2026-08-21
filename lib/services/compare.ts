@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { generateText } from "ai";
+import { recordAiUsage } from "@/lib/ai-usage";
 import { audit } from "@/lib/audit";
 import { VERSIONS } from "@/lib/config";
 import type { SessionUser } from "@/lib/errors";
@@ -77,6 +78,15 @@ export async function comparePeriods(params: {
 
   const inputTokens = result.usage.inputTokens ?? 0;
   const outputTokens = result.usage.outputTokens ?? 0;
+
+  await recordAiUsage({
+    kind: "chat",
+    model: modelId,
+    feature: "compare",
+    inputTokens,
+    outputTokens,
+    userId: user.id,
+  });
 
   return {
     text: result.text,

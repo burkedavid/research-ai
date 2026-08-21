@@ -1,6 +1,7 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { chunkThemes, chunks, documents, interviews, segments, themeProposals, themes } from "@/db/schema";
+import { recordAiUsage } from "@/lib/ai-usage";
 import { getEmbeddings } from "@/lib/embeddings";
 import { parseFile, type ParsedBlock } from "@/lib/parsers";
 import { getStorage } from "@/lib/storage";
@@ -215,6 +216,13 @@ export async function embedDocumentBatch(documentId: string): Promise<{ embedded
       pending.map((c) => c.content),
       "document",
     );
+    await recordAiUsage({
+      kind: "embedding",
+      model: provider.model,
+      feature: "ingest_embed",
+      inputTokens: provider.lastTokens(),
+      documentId,
+    });
     for (let i = 0; i < pending.length; i++) {
       await db.update(chunks).set({ embedding: vectors[i] }).where(eq(chunks.id, pending[i].id));
     }

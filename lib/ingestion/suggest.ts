@@ -1,5 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
+import { recordAiUsage } from "@/lib/ai-usage";
 import { getLlm } from "@/lib/llm";
 import { env } from "@/lib/env";
 import type { ChunkDraft } from "./chunk";
@@ -192,6 +193,13 @@ export async function suggestMetadata(
           if (p.trim() && !themeNames.some((t) => t.toLowerCase() === p.trim().toLowerCase())) proposals.add(p.trim());
         }
       }
+      await recordAiUsage({
+        kind: "chat",
+        model: modelId,
+        feature: "ingest_suggest",
+        inputTokens: result.usage.inputTokens ?? 0,
+        outputTokens: result.usage.outputTokens ?? 0,
+      });
       return {
         suggestions: chunks.map((c) => {
           const s = bySeq.get(c.seq);

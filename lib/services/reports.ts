@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { generateText } from "ai";
 import { db } from "@/db";
 import { waves } from "@/db/schema";
+import { recordAiUsage } from "@/lib/ai-usage";
 import { audit } from "@/lib/audit";
 import { VERSIONS } from "@/lib/config";
 import type { SessionUser } from "@/lib/errors";
@@ -78,6 +79,14 @@ async function generateSection(params: {
       `Write the "${params.heading}" section of a research report. 2-3 paragraphs, grounded and cited, with at most one strong verbatim quote.`,
       retrieval.chunks,
     ),
+  });
+  await recordAiUsage({
+    kind: "chat",
+    model: getLlm("query").modelId,
+    feature: "report",
+    inputTokens: result.usage.inputTokens ?? 0,
+    outputTokens: result.usage.outputTokens ?? 0,
+    userId: params.user.id,
   });
   const verification = verifyAnswer(result.text, retrieval.chunks);
   return {

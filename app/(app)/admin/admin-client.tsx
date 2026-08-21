@@ -68,10 +68,36 @@ interface ClientRow {
 }
 
 interface Usage {
-  byDay: { day: string; model: string; messages: number; inputTokens: number; outputTokens: number; estCostGbp: number }[];
+  byDay: { day: string; model: string; kind: string; calls: number; inputTokens: number; outputTokens: number; estCostGbp: number }[];
+  byFeature: { feature: string; kind: string; calls: number; tokens: number; estCostGbp: number }[];
+  totals: {
+    calls: number;
+    inputTokens: number;
+    outputTokens: number;
+    estCostGbp: number;
+    chatGbp: number;
+    embeddingGbp: number;
+    monthGbp: number;
+    last30Gbp: number;
+  };
+  uncostedModels: string[];
+  rates: { model: string; input: number; output: number; verified: boolean }[];
   retrieval: { searches: number; weakSearches: number };
-  ingestion: { documents: number; inputTokens: number; outputTokens: number };
+  ingestion: { documents: number };
 }
+
+/** Plain names for the ai_usage feature keys. */
+const FEATURE_LABEL: Record<string, string> = {
+  ask: "Ask the Archive",
+  quotes: "Find Quotes",
+  compare: "Compare Periods",
+  report: "Reports & briefings",
+  trends: "Trends synthesis",
+  ingest_suggest: "Ingestion — AI tagging",
+  ingest_embed: "Ingestion — embeddings",
+  search_query: "Search query embeddings",
+  reembed: "Re-embedding",
+};
 
 interface ProposalRow {
   id: string;
@@ -764,65 +790,172 @@ export function AdminClient({
 
       {tab === "usage" && (
         <div className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <Card>
               <CardContent>
-                <p className="text-xs uppercase text-muted-foreground">Searches</p>
-                <p className="mt-1 text-2xl font-semibold text-brand-900">{usage.retrieval.searches}</p>
-                <p className="text-xs text-amber-700">{usage.retrieval.weakSearches} returned weak evidence</p>
+                <p className="text-xs uppercase text-muted-foreground">Total AI spend</p>
+                <p className="mt-1 text-2xl font-semibold text-brand-900">£{usage.totals.estCostGbp.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">{usage.totals.calls.toLocaleString()} calls, all time</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent>
-                <p className="text-xs uppercase text-muted-foreground">Ingested documents (LLM-assisted)</p>
-                <p className="mt-1 text-2xl font-semibold text-brand-900">{usage.ingestion.documents}</p>
+                <p className="text-xs uppercase text-muted-foreground">This month</p>
+                <p className="mt-1 text-2xl font-semibold text-brand-900">£{usage.totals.monthGbp.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">£{usage.totals.last30Gbp.toFixed(2)} last 30 days</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent>
+                <p className="text-xs uppercase text-muted-foreground">Generation (chat)</p>
+                <p className="mt-1 text-2xl font-semibold text-brand-900">£{usage.totals.chatGbp.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">
-                  {usage.ingestion.inputTokens + usage.ingestion.outputTokens} tokens
+                  {(usage.totals.inputTokens + usage.totals.outputTokens).toLocaleString()} tokens total
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent>
-                <p className="text-xs uppercase text-muted-foreground">Est. generation spend</p>
-                <p className="mt-1 text-2xl font-semibold text-brand-900">
-                  £{usage.byDay.reduce((sum, d) => sum + d.estCostGbp, 0).toFixed(2)}
-                </p>
-                <p className="text-xs text-muted-foreground">estimates from per-message token usage</p>
+                <p className="text-xs uppercase text-muted-foreground">Embeddings</p>
+                <p className="mt-1 text-2xl font-semibold text-brand-900">£{usage.totals.embeddingGbp.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">ingestion + every search query</p>
               </CardContent>
             </Card>
           </div>
+
+          {usage.uncostedModels.length > 0 && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                No price is configured for {usage.uncostedModels.join(", ")} — their spend is missing from the totals
+                above. Add a rate in lib/config.ts so the budget figure is complete.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Card>
-            <Table className="text-xs">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Day</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Messages</TableHead>
-                  <TableHead>Input tokens</TableHead>
-                  <TableHead>Output tokens</TableHead>
-                  <TableHead>Est. £</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {usage.byDay.length === 0 && (
+            <CardContent>
+              <p className="text-sm font-semibold text-brand-900">Spend by activity</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Where the money actually goes.</p>
+              <Table className="mt-3 min-w-[520px] text-xs">
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
-                      No generation activity yet.
-                    </TableCell>
+                    <TableHead>Activity</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Calls</TableHead>
+                    <TableHead>Tokens</TableHead>
+                    <TableHead>Est. £</TableHead>
                   </TableRow>
-                )}
-                {usage.byDay.map((d, i) => (
-                  <TableRow key={i}>
-                    <TableCell>{d.day}</TableCell>
-                    <TableCell>{d.model}</TableCell>
-                    <TableCell>{d.messages}</TableCell>
-                    <TableCell>{d.inputTokens}</TableCell>
-                    <TableCell>{d.outputTokens}</TableCell>
-                    <TableCell>{d.estCostGbp.toFixed(4)}</TableCell>
+                </TableHeader>
+                <TableBody>
+                  {usage.byFeature.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
+                        No AI activity recorded yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {usage.byFeature.map((f, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium text-slate-900">{FEATURE_LABEL[f.feature] ?? f.feature}</TableCell>
+                      <TableCell className="text-muted-foreground">{f.kind}</TableCell>
+                      <TableCell>{f.calls.toLocaleString()}</TableCell>
+                      <TableCell>{f.tokens.toLocaleString()}</TableCell>
+                      <TableCell>£{f.estCostGbp.toFixed(4)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <p className="text-sm font-semibold text-brand-900">Daily breakdown by model</p>
+              <Table className="mt-3 min-w-[620px] text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Day</TableHead>
+                    <TableHead>Model</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Calls</TableHead>
+                    <TableHead>Input</TableHead>
+                    <TableHead>Output</TableHead>
+                    <TableHead>Est. £</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {usage.byDay.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
+                        No AI activity yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {usage.byDay.map((d, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{d.day}</TableCell>
+                      <TableCell>{d.model}</TableCell>
+                      <TableCell className="text-muted-foreground">{d.kind}</TableCell>
+                      <TableCell>{d.calls}</TableCell>
+                      <TableCell>{d.inputTokens.toLocaleString()}</TableCell>
+                      <TableCell>{d.outputTokens.toLocaleString()}</TableCell>
+                      <TableCell>£{d.estCostGbp.toFixed(4)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <p className="text-sm font-semibold text-brand-900">Rate card</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Token counts above are exact, taken from each provider response. The £ figures are derived from these
+                rates (£ per 1M tokens) — check them against your provider&apos;s pricing page and invoice. Rates marked
+                unverified have not been reconciled against a real bill.
+              </p>
+              <Table className="mt-3 min-w-[420px] text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Model</TableHead>
+                    <TableHead>Input £/1M</TableHead>
+                    <TableHead>Output £/1M</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usage.rates.map((r) => (
+                    <TableRow key={r.model}>
+                      <TableCell className="font-medium text-slate-900">{r.model}</TableCell>
+                      <TableCell>{r.input}</TableCell>
+                      <TableCell>{r.output}</TableCell>
+                      <TableCell>
+                        {r.verified ? (
+                          <span className="text-green-700">verified</span>
+                        ) : (
+                          <span className="text-amber-700">unverified estimate</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex flex-wrap gap-6 text-sm">
+              <span>
+                <span className="text-muted-foreground">Searches: </span>
+                <span className="font-medium text-slate-900">{usage.retrieval.searches}</span>
+                <span className="ml-1 text-xs text-amber-700">({usage.retrieval.weakSearches} weak evidence)</span>
+              </span>
+              <span>
+                <span className="text-muted-foreground">Indexed documents: </span>
+                <span className="font-medium text-slate-900">{usage.ingestion.documents}</span>
+              </span>
+            </CardContent>
           </Card>
         </div>
       )}

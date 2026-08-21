@@ -6,6 +6,7 @@ import {
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   primaryKey,
@@ -316,6 +317,33 @@ export const savedOutputs = pgTable("saved_outputs", {
   sharedAt: timestamp("shared_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Ledger of EVERY billable AI call — chat completions and embeddings alike.
+ * Token counts come straight from the provider response, so they are exact;
+ * the £ figure is derived from the rate table in lib/config.ts and is an
+ * estimate until reconciled against the provider's own billing.
+ * Insert-only, like audit_log.
+ */
+export const aiUsage = pgTable(
+  "ai_usage",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // "chat" | "embedding"
+    kind: text("kind").notNull(),
+    model: text("model").notNull(),
+    // what triggered it: ask, quotes, compare, report, trends, ingest_suggest,
+    // ingest_embed, search_query, reembed
+    feature: text("feature").notNull(),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    estCostGbp: numeric("est_cost_gbp", { precision: 12, scale: 6 }).notNull().default("0"),
+    userId: uuid("user_id").references(() => users.id),
+    documentId: uuid("document_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("ai_usage_day_idx").on(t.createdAt), index("ai_usage_feature_idx").on(t.feature, t.createdAt)],
+);
 
 // insert-only; written via audit() helper — no update/delete code path exists (§B5)
 export const auditLog = pgTable(
