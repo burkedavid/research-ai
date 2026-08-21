@@ -16,7 +16,8 @@ export type AuditAction =
   // structure are material changes, so they are audited like theme edits
   | "segment_edit"
   | "client_edit"
-  | "project_edit";
+  | "project_edit"
+  | "wave_edit";
 
 /**
  * The single write path to audit_log (§B5). Insert-only by construction:

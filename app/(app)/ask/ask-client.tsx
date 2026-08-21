@@ -260,7 +260,28 @@ export function AskClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, body: question }),
     });
-    if (res.ok) setTemplates((prev) => [...prev, { id: crypto.randomUUID(), name, body: question }]);
+    if (!res.ok) return;
+    // use the row the server returns — a fabricated client id would break
+    // rename/delete on a template saved in this session
+    const row = (await res.json()) as Template;
+    setTemplates((prev) => [...prev, { id: row.id, name: row.name, body: row.body }]);
+  }
+
+  async function renameTemplate(t: Template) {
+    const name = prompt("Rename template", t.name);
+    if (!name || name === t.name) return;
+    const res = await fetch(`/api/prompt-templates/${t.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (res.ok) setTemplates((prev) => prev.map((x) => (x.id === t.id ? { ...x, name } : x)));
+  }
+
+  async function deleteTemplate(t: Template) {
+    if (!confirm(`Delete the template "${t.name}"?`)) return;
+    const res = await fetch(`/api/prompt-templates/${t.id}`, { method: "DELETE" });
+    if (res.ok) setTemplates((prev) => prev.filter((x) => x.id !== t.id));
   }
 
   /** active-filter summary chips shown at the search box (§ feedback: users forget their scope) */
@@ -342,17 +363,37 @@ export function AskClient({
               <div className="flex flex-wrap gap-1.5 border-t border-border/60 pt-2">
                 <span className="text-xs text-muted-foreground">Templates:</span>
                 {templates.map((t) => (
-                  <Button
+                  <span
                     key={t.id}
-                    type="button"
-                    variant="outline"
-                    size="xs"
-                    onClick={() => setQuestion(t.body)}
-                    className="rounded-full"
-                    title={t.body}
+                    className="group inline-flex items-center rounded-full border border-border bg-background pr-1 transition hover:border-brand-600"
                   >
-                    {t.name}
-                  </Button>
+                    <button
+                      type="button"
+                      onClick={() => setQuestion(t.body)}
+                      title={t.body}
+                      className="py-1 pl-3 pr-1.5 text-xs font-medium text-foreground"
+                    >
+                      {t.name}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Rename template ${t.name}`}
+                      title="Rename"
+                      onClick={() => renameTemplate(t)}
+                      className="px-1 text-xs text-muted-foreground hover:text-brand-700"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete template ${t.name}`}
+                      title="Delete"
+                      onClick={() => deleteTemplate(t)}
+                      className="px-1 text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      ✕
+                    </button>
+                  </span>
                 ))}
               </div>
             )}

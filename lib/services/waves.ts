@@ -1,6 +1,7 @@
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { documents, projects, waves } from "@/db/schema";
+import { audit } from "@/lib/audit";
 import { ForbiddenError, type SessionUser } from "@/lib/errors";
 
 export async function listWaves() {
@@ -103,6 +104,59 @@ export async function confirmWave(user: SessionUser, waveId: string) {
     throw new Error("A wave needs at least one indexed document before it can be confirmed");
   }
   await db.update(waves).set({ status: "confirmed" }).where(and(eq(waves.id, waveId), ne(waves.status, "confirmed")));
+}
+
+/**
+ * Correct a wave's details (§A14). A confirmed wave is locked — reopening it
+ * would silently change the period that indexed evidence is filed under.
+ */
+export async function updateWave(
+  user: SessionUser,
+  waveId: string,
+  patch: { waveNumber?: number; month?: number; year?: number; fieldworkNotes?: string | null; keyEvents?: string[] | null },
+  ip?: string | null,
+) {
+  if (user.role === "viewer") throw new ForbiddenError("Requires researcher role");
+  const [wave] = await db.select().from(waves).where(eq(waves.id, waveId));
+  if (!wave) throw new Error("Wave not found");
+  if (wave.status === "confirmed") throw new Error("A confirmed wave cannot be edited");
+
+  const values: Record<string, unknown> = {};
+  if (patch.waveNumber !== undefined) values.waveNumber = patch.waveNumber;
+  if (patch.month !== undefined) values.month = patch.month;
+  if (patch.year !== undefined) values.year = patch.year;
+  if (patch.fieldworkNotes !== undefined) values.fieldworkNotes = patch.fieldworkNotes;
+  if (patch.keyEvents !== undefined) values.keyEvents = patch.keyEvents;
+  if (Object.keys(values).length === 0) return;
+
+  await db.update(waves).set(values).where(eq(waves.id, waveId));
+  await audit({
+    userId: user.id,
+    action: "wave_edit",
+    entityType: "wave",
+    entityId: waveId,
+    detail: { op: "update", ...values },
+    ip,
+  });
+}
+
+/**
+ * Remove an empty wave — created by mistake, or auto-created from a mistyped
+ * filename during bulk upload. Deliberately refuses while documents exist:
+ * those must be deleted individually so the §B5 deletion contract (blob +
+ * chunks + tsv + embeddings) is honoured and audited per document.
+ */
+export async function deleteWave(user: SessionUser, waveId: string, ip?: string | null) {
+  if (user.role !== "admin") throw new ForbiddenError("Requires admin role");
+  const [docs] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(documents)
+    .where(eq(documents.waveId, waveId));
+  if (docs.count > 0) {
+    throw new Error(`Wave still has ${docs.count} document(s) — delete those first`);
+  }
+  await db.delete(waves).where(eq(waves.id, waveId));
+  await audit({ userId: user.id, action: "delete", entityType: "wave", entityId: waveId, detail: { op: "delete_empty_wave" }, ip });
 }
 
 export async function getWaveWithDocuments(waveId: string) {

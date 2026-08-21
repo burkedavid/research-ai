@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FilterOptions } from "@/lib/services/filter-options";
-import { REGIONS as SEED_REGIONS } from "@/lib/seed/segments";
 
 export interface FilterState {
   waveIds: string[];
@@ -45,8 +44,6 @@ export function toApiFilters(f: FilterState): Record<string, unknown> | undefine
 const SOURCE_TYPES = ["report", "transcript", "crib_sheet", "moderator_notes", "discussion_guide", "debrief_deck", "coding_frame", "tabular", "other"];
 const EVIDENCE_TYPES = ["direct_quote", "researcher_summary", "guide", "context"];
 const SENTIMENTS = ["positive", "negative", "neutral", "mixed"];
-// single source of truth for regions — same list the ingest attribution parser uses
-const REGIONS = SEED_REGIONS;
 
 /** Section accent dots drawn from the Sentiment Research mark's palette. */
 const ACCENTS = {
@@ -325,7 +322,7 @@ export function FilterSidebar({
 
           <Section title="Region" accent={ACCENTS.region} count={value.regions.length}>
             <div className="flex flex-wrap gap-1.5">
-              {REGIONS.map((s) => (
+              {options.regions.map((s) => (
                 <Chip
                   key={s}
                   label={s}

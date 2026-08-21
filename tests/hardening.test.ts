@@ -51,6 +51,7 @@ describe("hardening sweep (§B10.5, §B9)", () => {
       "segment_edit",
       "client_edit",
       "project_edit",
+      "wave_edit",
     ];
     for (const action of actions) {
       await audit({ action, entityType: "hardening_probe", detail: { probe: true } });

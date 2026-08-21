@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { UploadForm } from "./upload-form";
 import { ConfirmWaveButton } from "./confirm-wave-button";
+import { WaveSettings } from "./wave-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,17 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
             </Badge>
           )}
           {canEdit && wave.status !== "confirmed" && <ConfirmWaveButton waveId={wave.id} disabled={!allSettled} />}
+          {canEdit && wave.status !== "confirmed" && (
+            <WaveSettings
+              waveId={wave.id}
+              waveNumber={wave.waveNumber}
+              month={wave.month}
+              year={wave.year}
+              keyEvents={wave.keyEvents ?? []}
+              documentCount={documents.length}
+              canDelete={user.role === "admin"}
+            />
+          )}
         </div>
       </div>
 
