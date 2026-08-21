@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { COST_PER_MTOK_GBP } from "@/lib/config";
+import { COST_PER_MTOK_USD, FX_NOTE, USD_TO_GBP } from "@/lib/config";
 
 /**
  * Complete AI spend picture (§B8 admin): EVERY billable call — chat and
@@ -50,7 +50,7 @@ export async function getUsageSummary() {
   // models seen in the ledger that have no rate — their spend is unknown, and
   // saying "£0" would understate the budget
   const models = (await db.execute(sql`SELECT DISTINCT model FROM ai_usage`)) as unknown as { model: string }[];
-  const uncostedModels = models.map((m) => m.model).filter((m) => !COST_PER_MTOK_GBP[m]);
+  const uncostedModels = models.map((m) => m.model).filter((m) => !COST_PER_MTOK_USD[m]);
 
   const [retrieval] = (await db.execute(sql`
     SELECT count(*)::int AS searches,
@@ -93,12 +93,16 @@ export async function getUsageSummary() {
     },
     uncostedModels,
     /** the rate card the £ figures were derived from, so they're auditable */
-    rates: Object.entries(COST_PER_MTOK_GBP).map(([model, r]) => ({
+    rates: Object.entries(COST_PER_MTOK_USD).map(([model, r]) => ({
       model,
-      input: r.input,
-      output: r.output,
+      inputUsd: r.input,
+      outputUsd: r.output,
+      inputGbp: r.input * USD_TO_GBP,
+      outputGbp: r.output * USD_TO_GBP,
       verified: Boolean(r.verified),
+      source: r.source ?? null,
     })),
+    fxNote: FX_NOTE,
     retrieval: { searches: n(retrieval?.searches), weakSearches: n(retrieval?.weak_searches) },
     ingestion: { documents: n(ingestion?.documents) },
   };

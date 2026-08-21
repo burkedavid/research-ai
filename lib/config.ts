@@ -51,36 +51,63 @@ export const EMBEDDING = {
  * Embedding models bill on input tokens only (output is 0).
  */
 export interface Rate {
+  /** USD per 1M input tokens, exactly as published by the provider */
   input: number;
+  /** USD per 1M output tokens (0 for embedding models — input-only billing) */
   output: number;
-  /** true once checked against an actual provider invoice */
+  /** true when taken from the provider's published price list */
   verified?: boolean;
+  /** where the figure came from, so it can be re-checked */
+  source?: string;
 }
 
-export const COST_PER_MTOK_GBP: Record<string, Rate> = {
-  "claude-sonnet-4-6": { input: 2.4, output: 12.0 },
-  "claude-haiku-4-5-20251001": { input: 0.8, output: 4.0 },
-  // OpenAI chat — update from platform.openai.com/docs/pricing
-  "gpt-5.6-sol": { input: 1.0, output: 8.0 },
-  "gpt-5.6-luna": { input: 0.2, output: 1.6 },
-  "gpt-5.6-terra": { input: 0.5, output: 4.0 },
-  "gpt-4.1": { input: 1.6, output: 6.4 },
-  "gpt-4.1-mini": { input: 0.32, output: 1.28 },
-  // Embeddings — input-only billing
-  "text-embedding-3-large": { input: 0.104, output: 0 },
-  "text-embedding-3-small": { input: 0.016, output: 0 },
-  "voyage-3.5-lite": { input: 0.016, output: 0 },
+/**
+ * Prices are held in USD because that is the currency the providers publish
+ * and bill in — converting at storage time would bake in a stale FX rate and
+ * make the numbers impossible to reconcile against an invoice.
+ */
+const OPENAI_SRC = "developers.openai.com/api/docs/pricing, checked 2026-08-21";
+
+export const COST_PER_MTOK_USD: Record<string, Rate> = {
+  // OpenAI chat — standard tier
+  "gpt-5.6-sol": { input: 5.0, output: 30.0, verified: true, source: OPENAI_SRC },
+  "gpt-5.6-luna": { input: 0.2, output: 1.2, verified: true, source: OPENAI_SRC },
+  "gpt-5.6-terra": { input: 2.0, output: 12.0, verified: true, source: OPENAI_SRC },
+  "gpt-4.1": { input: 2.0, output: 8.0, verified: true, source: OPENAI_SRC },
+  "gpt-4.1-mini": { input: 0.4, output: 1.6, verified: true, source: OPENAI_SRC },
+  // OpenAI embeddings — input-only billing
+  "text-embedding-3-large": { input: 0.13, output: 0, verified: true, source: OPENAI_SRC },
+  "text-embedding-3-small": { input: 0.02, output: 0, verified: true, source: OPENAI_SRC },
+  // Anthropic / Voyage — only used if you switch provider; NOT yet checked
+  // against a published price list, so they stay flagged as estimates.
+  "claude-sonnet-4-6": { input: 3.0, output: 15.0 },
+  "claude-haiku-4-5-20251001": { input: 1.0, output: 5.0 },
+  "voyage-3.5-lite": { input: 0.02, output: 0 },
   // keyless dev providers genuinely cost nothing
-  "fake-llm": { input: 0, output: 0, verified: true },
-  "fake-embeddings-1024": { input: 0, output: 0, verified: true },
+  "fake-llm": { input: 0, output: 0, verified: true, source: "no API call is made" },
+  "fake-embeddings-1024": { input: 0, output: 0, verified: true, source: "no API call is made" },
 };
 
-/** Estimated £ for a call. Returns null when the model has no rate, so the
- *  caller can report it as uncosted instead of pretending it was free. */
-export function estimateGbp(model: string, inputTokens: number, outputTokens: number): number | null {
-  const rate = COST_PER_MTOK_GBP[model];
+/**
+ * USD → GBP. The providers bill in USD, so this is the one genuinely moving
+ * part of the estimate. Override with USD_TO_GBP when the rate drifts or to
+ * match the rate your card issuer actually applied.
+ */
+export const USD_TO_GBP = Number(process.env.USD_TO_GBP ?? 0.7323);
+export const FX_NOTE = "USD→GBP 0.7323 (21 Aug 2026); set USD_TO_GBP to override";
+
+/** Estimated USD for a call, or null when the model has no published rate —
+ *  so callers report it as uncosted rather than pretending it was free. */
+export function estimateUsd(model: string, inputTokens: number, outputTokens: number): number | null {
+  const rate = COST_PER_MTOK_USD[model];
   if (!rate) return null;
   return (inputTokens * rate.input + outputTokens * rate.output) / 1_000_000;
+}
+
+/** Estimated £ for a call (USD price × FX). Null when the model has no rate. */
+export function estimateGbp(model: string, inputTokens: number, outputTokens: number): number | null {
+  const usd = estimateUsd(model, inputTokens, outputTokens);
+  return usd === null ? null : usd * USD_TO_GBP;
 }
 
 export const RETRIEVAL = {

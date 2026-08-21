@@ -81,7 +81,8 @@ interface Usage {
     last30Gbp: number;
   };
   uncostedModels: string[];
-  rates: { model: string; input: number; output: number; verified: boolean }[];
+  rates: { model: string; inputUsd: number; outputUsd: number; inputGbp: number; outputGbp: number; verified: boolean; source: string | null }[];
+  fxNote: string;
   retrieval: { searches: number; weakSearches: number };
   ingestion: { documents: number };
 }
@@ -911,30 +912,33 @@ export function AdminClient({
             <CardContent>
               <p className="text-sm font-semibold text-brand-900">Rate card</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Token counts above are exact, taken from each provider response. The £ figures are derived from these
-                rates (£ per 1M tokens) — check them against your provider&apos;s pricing page and invoice. Rates marked
-                unverified have not been reconciled against a real bill.
+                Token counts above are exact, taken from each provider response. Providers publish and bill in USD, so
+                prices are held in USD and converted — {usage.fxNote}.
               </p>
               <Table className="mt-3 min-w-[420px] text-xs">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Model</TableHead>
+                    <TableHead>Input $/1M</TableHead>
+                    <TableHead>Output $/1M</TableHead>
                     <TableHead>Input £/1M</TableHead>
                     <TableHead>Output £/1M</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Source</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {usage.rates.map((r) => (
                     <TableRow key={r.model}>
                       <TableCell className="font-medium text-slate-900">{r.model}</TableCell>
-                      <TableCell>{r.input}</TableCell>
-                      <TableCell>{r.output}</TableCell>
-                      <TableCell>
+                      <TableCell>${r.inputUsd}</TableCell>
+                      <TableCell>${r.outputUsd}</TableCell>
+                      <TableCell>£{r.inputGbp.toFixed(3)}</TableCell>
+                      <TableCell>£{r.outputGbp.toFixed(3)}</TableCell>
+                      <TableCell className="text-xs">
                         {r.verified ? (
-                          <span className="text-green-700">verified</span>
+                          <span className="text-green-700">{r.source ?? "published price"}</span>
                         ) : (
-                          <span className="text-amber-700">unverified estimate</span>
+                          <span className="text-amber-700">estimate — not checked</span>
                         )}
                       </TableCell>
                     </TableRow>

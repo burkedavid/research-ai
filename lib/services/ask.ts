@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { conversations, messages, retrievalLog } from "@/db/schema";
 import { recordAiUsage } from "@/lib/ai-usage";
 import { audit } from "@/lib/audit";
-import { COST_PER_MTOK_GBP, VERSIONS } from "@/lib/config";
+import { VERSIONS, estimateGbp } from "@/lib/config";
 import type { SessionUser } from "@/lib/errors";
 import { getLlm } from "@/lib/llm";
 import { ASK_SYSTEM_PROMPT, PROMPT_VERSION, buildAskUserMessage } from "@/lib/prompts/ask";
@@ -13,9 +13,11 @@ import { computeEvidentialBasis } from "@/lib/retrieval/confidence";
 import { searchChunks, type SearchFilters } from "@/lib/retrieval/search";
 import { buildCitations, verifyAnswer } from "@/lib/retrieval/verify";
 
+/** Kept for the per-message provenance figure; the authoritative spend view
+ *  is the ai_usage ledger. Unpriced models record 0 here but are surfaced as
+ *  uncosted in the admin summary. */
 export function estimateCostGbp(modelId: string, inputTokens: number, outputTokens: number): number {
-  const rates = COST_PER_MTOK_GBP[modelId] ?? { input: 0, output: 0 };
-  return (inputTokens * rates.input + outputTokens * rates.output) / 1_000_000;
+  return estimateGbp(modelId, inputTokens, outputTokens) ?? 0;
 }
 
 /**
