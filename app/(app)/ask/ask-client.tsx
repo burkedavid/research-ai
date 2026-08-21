@@ -344,7 +344,7 @@ export function AskClient({
               <Input
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                placeholder="e.g. How have Rising Metropolitans talked about optimism since March 2020?"
+                placeholder={suggestions[0] ? `e.g. ${suggestions[0].question}` : "Ask a question of the archive"}
                 className="h-12 flex-1 text-base shadow-sm"
                 autoFocus
               />

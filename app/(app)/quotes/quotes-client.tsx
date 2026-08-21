@@ -169,7 +169,7 @@ export function QuotesClient({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. cutting back, heating, trust in banks…"
+            placeholder={suggestions.length ? `e.g. ${suggestions.slice(0, 3).join(", ")}…` : "Search for a phrase consumers used"}
             className="h-9 flex-1"
           />
           <Button type="submit" size="lg" disabled={busy || !query.trim()}>
