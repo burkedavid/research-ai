@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AiText } from "@/components/ai-text";
+import { AiText, markdownToPlainText } from "@/components/ai-text";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -255,7 +255,7 @@ export function CompareClient({ options }: { options: FilterOptions }) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => navigator.clipboard.writeText(result.text)}
+              onClick={() => navigator.clipboard.writeText(markdownToPlainText(result.text))}
             >
               Copy text
             </Button>

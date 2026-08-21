@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { EMPTY_FILTERS, FilterSidebar, toApiFilters, type FilterState } from "@/components/filter-sidebar";
-import { AiText } from "@/components/ai-text";
+import { AiText, markdownToPlainText } from "@/components/ai-text";
 import { PageHeader } from "@/components/page-header";
 import { ResearchLoader } from "@/components/research-loader";
 import type { FilterOptions } from "@/lib/services/filter-options";
@@ -576,7 +576,7 @@ export function AskClient({
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          navigator.clipboard.writeText(`${turn.answer}\n\nSources:\n${turn.citations.map((c) => `[${c.n}] ${c.filename} (${c.wave})`).join("\n")}`);
+                          navigator.clipboard.writeText(`${markdownToPlainText(turn.answer)}\n\nSources:\n${turn.citations.map((c) => `[${c.n}] ${c.filename} (${c.wave})`).join("\n")}`);
                           void fetch("/api/export/log", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },

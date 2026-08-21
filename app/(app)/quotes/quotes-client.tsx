@@ -223,7 +223,7 @@ export function QuotesClient({ options, hasTranscriptAccess }: { options: Filter
                 ))}
               </div>
               <p className="mt-6 text-xs text-muted-foreground">
-                Every quote is word-for-word from a transcript, with its interview, segment and wave attached.
+                Every quote is word-for-word — from an interview transcript or attributed inline in a report — with its segment, region and date attached. Shortlist the strong ones to copy or export with sources.
               </p>
             </div>
           </div>

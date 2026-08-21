@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FilterOptions } from "@/lib/services/filter-options";
-import { AiText } from "@/components/ai-text";
+import { AiText, markdownToPlainText } from "@/components/ai-text";
 import { PageHeader } from "@/components/page-header";
 import { ResearchLoader } from "@/components/research-loader";
 
@@ -120,7 +120,7 @@ export function ReportsClient({ options }: { options: FilterOptions }) {
     if (!draft) return;
     const text = draft.sections
       .map((s) => {
-        const bullets = s.text
+        const bullets = markdownToPlainText(s.text)
           .replace(/\[\d+\]/g, "")
           .split(/(?<=[.!?])\s+/)
           .filter((sentence) => sentence.trim().length > 15)

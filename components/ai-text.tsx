@@ -17,6 +17,22 @@ import remarkGfm from "remark-gfm";
 
 const CITE = /\[([AB]?\d+)\]/g;
 
+/**
+ * Strip markdown to clean prose for clipboard and slide exports. The screen
+ * renders markdown, but pasting into an email or slide deck must not carry
+ * literal ## and ** through to a client-facing deliverable.
+ */
+export function markdownToPlainText(md: string): string {
+  return md
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s*[-*•]\s+/gm, "• ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** Wrap citation markers in links, leaving all other text untouched. */
 function linkCitations(children: React.ReactNode, citeHref: (n: string) => string): React.ReactNode {
   if (typeof children === "string") {
