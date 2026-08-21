@@ -223,6 +223,11 @@ function describeAudit(a: AuditRow): string {
     case "permission_change": {
       if (op === "create") return `Created user account (${str("role") ?? "user"})`;
       if (op === "retention") return `Set retention to ${d.retentionMonths ?? "no limit"} month(s)`;
+      if (op === "model_change") return `Switched the ${str("job") ?? "AI"} model to ${str("model") ?? "the default"}`;
+      if (op === "suggestions_change") {
+        const what = str("kind") === "quotes" ? "suggested quote searches" : "suggested questions";
+        return d.reset ? `Reset the ${what} to the generated list` : `Updated the ${what} (${d.count ?? 0} shown)`;
+      }
       const bits = [
         str("role") ? `role → ${str("role")}` : null,
         typeof d.transcriptAccess === "boolean" ? `transcript access ${d.transcriptAccess ? "granted" : "removed"}` : null,

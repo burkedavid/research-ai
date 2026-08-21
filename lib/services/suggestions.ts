@@ -75,6 +75,8 @@ interface ArchiveShape {
   segments: string[];
   firstYear: number | null;
   lastYear: number | null;
+  /** waves holding indexed evidence — a change-over-time question needs at least two */
+  waveCount: number;
 }
 
 /** What the archive actually contains right now, ordered by how much evidence backs it. */
@@ -100,19 +102,20 @@ async function readArchiveShape(): Promise<ArchiveShape> {
     `)) as unknown as { name: string }[];
 
     const yearRows = (await db.execute(sql`
-      SELECT min(w.year)::int AS first_year, max(w.year)::int AS last_year
+      SELECT min(w.year)::int AS first_year, max(w.year)::int AS last_year, count(*)::int AS wave_count
       FROM waves w
       WHERE EXISTS (SELECT 1 FROM documents d WHERE d.wave_id = w.id AND d.status = 'indexed')
-    `)) as unknown as { first_year: number | null; last_year: number | null }[];
+    `)) as unknown as { first_year: number | null; last_year: number | null; wave_count: number }[];
 
     return {
       themes: themeRows.map((r) => r.name),
       segments: segRows.map((r) => r.name),
       firstYear: yearRows[0]?.first_year != null ? Number(yearRows[0].first_year) : null,
       lastYear: yearRows[0]?.last_year != null ? Number(yearRows[0].last_year) : null,
+      waveCount: Number(yearRows[0]?.wave_count ?? 0),
     };
   } catch {
-    return { themes: [], segments: [], firstYear: null, lastYear: null };
+    return { themes: [], segments: [], firstYear: null, lastYear: null, waveCount: 0 };
   }
 }
 
@@ -123,15 +126,20 @@ function asTopic(theme: string): string {
 
 function deriveAsk(shape: ArchiveShape): AskSuggestion[] {
   const out: AskSuggestion[] = [];
+  // A change-over-time question is the archive's whole point, so offer it
+  // whenever there is more than one wave — not only when the waves happen to
+  // straddle a new year. An archive of monthly 2026 waves is still a trend.
   const spansYears = shape.firstYear != null && shape.lastYear != null && shape.lastYear > shape.firstYear;
+  const canTrend = shape.waveCount > 1 && Boolean(shape.themes[0]);
 
-  if (spansYears && shape.themes[0]) {
+  if (canTrend) {
+    const period = spansYears ? `between ${shape.firstYear} and ${shape.lastYear}` : "across the waves so far";
     out.push({
       category: shape.themes[0],
-      question: `How has ${asTopic(shape.themes[0])} changed between ${shape.firstYear} and ${shape.lastYear}?`,
+      question: `How has ${asTopic(shape.themes[0])} changed ${period}?`,
     });
   }
-  for (const theme of shape.themes.slice(spansYears ? 1 : 0, 4)) {
+  for (const theme of shape.themes.slice(canTrend ? 1 : 0, 4)) {
     out.push({ category: theme, question: `What do consumers say about ${asTopic(theme)}?` });
   }
   if (shape.segments[0] && shape.themes[0]) {

@@ -8,7 +8,9 @@ import {
   getSuggestionSettings,
   setSuggestions,
 } from "@/lib/services/suggestions";
-import { admin, ensureCorpusIngested } from "./helpers";
+import { findQuotes } from "@/lib/services/quotes";
+import { searchChunks } from "@/lib/retrieval/search";
+import { admin, ensureCorpusIngested, researcher } from "./helpers";
 
 beforeAll(async () => {
   await ensureCorpusIngested();
@@ -42,6 +44,29 @@ describe("starter suggestions (derived from the indexed archive)", () => {
     for (const chip of quoteList) {
       expect(known.has(chip)).toBe(true);
     }
+  });
+
+  it("every suggested quote search actually returns quotes", async () => {
+    // the property that matters: a chip that finds nothing teaches a new user
+    // the archive is empty. Labels being real is not enough.
+    const user = await researcher();
+    const chips = await getQuoteSuggestions();
+    const empty: string[] = [];
+    for (const chip of chips) {
+      const { quotes } = await findQuotes({ user, query: chip });
+      if (quotes.length === 0) empty.push(chip);
+    }
+    expect(empty).toEqual([]);
+  });
+
+  it("every suggested question retrieves evidence", async () => {
+    const user = await researcher();
+    const barren: string[] = [];
+    for (const s of await getAskSuggestions()) {
+      const { chunks } = await searchChunks({ query: s.question, user, k: 8 });
+      if (chunks.length === 0) barren.push(s.question);
+    }
+    expect(barren).toEqual([]);
   });
 
   it("spans the archive's real date range rather than a hardcoded one", async () => {
