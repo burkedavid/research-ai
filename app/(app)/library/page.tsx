@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { env } from "@/lib/env";
 import { CreateWaveForm } from "./create-wave-form";
 import { BulkUploadForm } from "./bulk-upload-form";
+import { RenumberWavesButton } from "./renumber-waves-button";
 import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,9 @@ export default async function LibraryPage() {
               projects={projectRows.map((p) => ({ id: p.id, name: p.name }))}
               storageDriver={env.STORAGE_DRIVER}
             />
+            {user.role === "admin" && (
+              <RenumberWavesButton projects={projectRows.map((p) => ({ id: p.id, name: p.name }))} />
+            )}
           </div>
         )}
         <Card className="mt-4 py-0">

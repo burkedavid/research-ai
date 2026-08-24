@@ -428,6 +428,13 @@ export default async function HelpPage() {
             </li>
           </ul>
           <p>
+            <strong>Wave numbers</strong> after a bulk import are a guess: each wave is numbered by how many earlier
+            waves existed when it was created, so a back-catalogue loaded newest-first can leave several waves called
+            &ldquo;Wave 1&rdquo;. <strong>Renumber waves by date</strong> in the Library puts a project straight as 1, 2,
+            3… in date order. Don&apos;t use it if your numbers come from the real fieldwork series (Wave 32 of 76) —
+            edit those individually instead.
+          </p>
+          <p>
             Waves can also be corrected in the <Link href="/library" className="font-medium underline">Library</Link>:
             open a draft wave to fix its number, month, year or key events. A confirmed wave is locked, and an empty
             wave (say, one created by a mistyped filename during bulk upload) can be deleted by an admin.

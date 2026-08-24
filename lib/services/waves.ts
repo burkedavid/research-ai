@@ -57,7 +57,10 @@ export async function findOrCreateWave(
     .where(and(eq(waves.projectId, params.projectId), eq(waves.year, params.year), eq(waves.month, params.month)));
   if (existing) return existing.id;
 
-  // wave number = chronological rank among this project's waves
+  // Best-effort wave number: chronological rank at the moment of creation.
+  // It is only a guess — importing a back-catalogue newest-first numbers every
+  // wave 1, because no earlier wave exists yet when each one is created. An
+  // admin can put a project straight with renumberWavesChronologically().
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(waves)
@@ -182,4 +185,54 @@ export async function getWaveWithDocuments(waveId: string) {
     .where(and(eq(documents.waveId, waveId), ne(documents.status, "deleted")))
     .orderBy(desc(documents.createdAt));
   return { wave, documents: docs };
+}
+
+/**
+ * Renumber a project's waves 1..n in date order.
+ *
+ * Auto-created waves (bulk upload) get their number from however many earlier
+ * waves happened to exist at the moment they were created, so loading a
+ * back-catalogue newest-first leaves every wave numbered 1. The number is only
+ * ever a guess: a real archive's wave numbers are a property of the fieldwork
+ * series, not of what has been loaded — an archive holding only waves 32 and 76
+ * of 76 must keep those numbers, which is why this is an explicit admin action
+ * and not something that runs on every upload.
+ *
+ * It renumbers confirmed waves too. The confirmed lock exists to stop the
+ * PERIOD of indexed evidence changing silently; the number is a label, and
+ * leaving confirmed waves out would produce duplicates alongside renumbered
+ * drafts. This is deliberate, audited, and admin-only.
+ */
+export async function renumberWavesChronologically(
+  user: SessionUser,
+  projectId: string,
+  ip?: string | null,
+): Promise<{ renumbered: number }> {
+  if (user.role !== "admin") throw new ForbiddenError("Requires admin role");
+
+  const rows = await db
+    .select({ id: waves.id, waveNumber: waves.waveNumber, year: waves.year, month: waves.month })
+    .from(waves)
+    .where(eq(waves.projectId, projectId))
+    .orderBy(waves.year, waves.month);
+
+  let renumbered = 0;
+  for (const [i, row] of rows.entries()) {
+    const next = i + 1;
+    if (row.waveNumber === next) continue;
+    await db.update(waves).set({ waveNumber: next }).where(eq(waves.id, row.id));
+    renumbered += 1;
+  }
+
+  if (renumbered > 0) {
+    await audit({
+      userId: user.id,
+      action: "wave_edit",
+      entityType: "project",
+      entityId: projectId,
+      detail: { op: "renumber", renumbered, total: rows.length },
+      ip,
+    });
+  }
+  return { renumbered };
 }
