@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { chunkThemes, chunks, documents, interviews, segments, themes, waves } from "@/db/schema";
 import { audit } from "@/lib/audit";
+import { estimateGbp } from "@/lib/config";
+import { getUsdToGbp } from "@/lib/fx";
 import { checkFileSignature } from "@/lib/ingestion/file-errors";
 import { dispatchDocumentApproved, dispatchDocumentUploaded } from "@/lib/ingestion/dispatch";
 import { deleteDocumentData } from "@/lib/ingestion/pipeline";
@@ -323,3 +325,61 @@ export async function getDocumentWithChunks(user: SessionUser, documentId: strin
     chunks: docChunks.map((c) => ({ ...c, themes: themesByChunk.get(c.id) ?? [] })),
   };
 }
+
+/**
+ * Live processing state for a set of documents.
+ *
+ * Ingestion is asynchronous — a document is registered, then parsed, tagged and
+ * embedded — but nothing in the UI polled, so an upload showed "done" the
+ * moment it was registered and the row sat at 'uploaded' until someone thought
+ * to refresh. A failure was equally silent. This is the read side of fixing
+ * that; it is deliberately tiny so it is cheap to poll.
+ */
+export async function getDocumentStatuses(documentIds: string[]): Promise<DocumentStatus[]> {
+  if (documentIds.length === 0) return [];
+  const rows = await db
+    .select({
+      id: documents.id,
+      status: documents.status,
+      error: documents.error,
+      parseWarnings: documents.parseWarnings,
+      ingestUsage: documents.ingestUsage,
+      chunkCount: sql<number>`(SELECT count(*)::int FROM chunks c WHERE c.document_id = ${documents.id})`,
+      embedded: sql<number>`(SELECT count(*)::int FROM chunks c WHERE c.document_id = ${documents.id} AND c.embedding IS NOT NULL)`,
+    })
+    .from(documents)
+    .where(inArray(documents.id, documentIds));
+
+  const fx = await getUsdToGbp();
+  return rows.map((r) => {
+    const usage = (r.ingestUsage ?? null) as { inputTokens?: number; outputTokens?: number; model?: string } | null;
+    return {
+      id: r.id,
+      status: r.status,
+      error: r.error,
+      warnings: Array.isArray(r.parseWarnings) ? r.parseWarnings.length : 0,
+      chunkCount: Number(r.chunkCount ?? 0),
+      embedded: Number(r.embedded ?? 0),
+      // what this document actually cost to bring in — shown when it lands, so
+      // spend is never something a user discovers later in a monthly total
+      costGbp:
+        usage?.model && usage.model !== "heuristic"
+          ? estimateGbp(usage.model, usage.inputTokens ?? 0, usage.outputTokens ?? 0, fx.rate)
+          : null,
+    };
+  });
+}
+
+export interface DocumentStatus {
+  id: string;
+  status: string;
+  error: string | null;
+  warnings: number;
+  chunkCount: number;
+  embedded: number;
+  /** actual AI spend on this document's ingestion, null until known */
+  costGbp: number | null;
+}
+
+/** Statuses that mean the pipeline has finished with a document, either way. */
+export const TERMINAL_DOCUMENT_STATUSES = ["review", "indexed", "failed", "deleted"];

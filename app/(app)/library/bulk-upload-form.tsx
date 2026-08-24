@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { IngestProgress } from "@/components/ingest-progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -45,6 +46,8 @@ export function BulkUploadForm({
   const [sourceType, setSourceType] = useState("report");
   const [rows, setRows] = useState<Row[]>([]);
   const [busy, setBusy] = useState(false);
+  /** documents accepted for processing, polled for live progress + cost */
+  const [tracked, setTracked] = useState<string[]>([]);
 
   function patch(filename: string, p: Partial<Row>) {
     setRows((prev) => prev.map((r) => (r.filename === filename ? { ...r, ...p } : r)));
@@ -68,6 +71,8 @@ export function BulkUploadForm({
     if (files.length === 0 || !projectId) return;
     setBusy(true);
     setRows(files.map((f) => ({ filename: f.name, state: "uploading" as const })));
+    setTracked([]);
+    const created: string[] = [];
 
     for (const file of files) {
       try {
@@ -86,6 +91,7 @@ export function BulkUploadForm({
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error ?? "Upload failed");
+        if (body.documentId) created.push(body.documentId as string);
         patch(file.name, { state: "done", detail: body.reportDate ? `dated ${body.reportDate}` : "queued for review" });
       } catch (err) {
         patch(file.name, { state: "error", detail: err instanceof Error ? err.message : String(err) });
@@ -93,6 +99,7 @@ export function BulkUploadForm({
     }
     setBusy(false);
     if (fileRef.current) fileRef.current.value = "";
+    setTracked(created);
     router.refresh();
   }
 
@@ -165,6 +172,7 @@ export function BulkUploadForm({
             ))}
           </ul>
         )}
+        <IngestProgress documentIds={tracked} />
       </CardContent>
     </Card>
   );

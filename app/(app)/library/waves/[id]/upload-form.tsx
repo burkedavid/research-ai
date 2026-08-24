@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { IngestProgress } from "@/components/ingest-progress";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,8 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
   const isReference = sourceType === "reference_data";
   const [statuses, setStatuses] = useState<UploadStatus[]>([]);
   const [busy, setBusy] = useState(false);
+  /** documents accepted for processing, polled for live progress + cost */
+  const [tracked, setTracked] = useState<string[]>([]);
 
   function setStatus(filename: string, patch: Partial<UploadStatus>) {
     setStatuses((prev) => prev.map((s) => (s.filename === filename ? { ...s, ...patch } : s)));
@@ -64,7 +67,9 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
     const files = Array.from(fileRef.current?.files ?? []);
     if (files.length === 0) return;
     setBusy(true);
+    setTracked([]);
     setStatuses(files.map((f) => ({ filename: f.name, state: "uploading" })));
+    const created: string[] = [];
 
     for (const file of files) {
       try {
@@ -87,6 +92,8 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error ?? "Registration failed");
         }
+        const registered = (await res.json().catch(() => ({}))) as { documentId?: string };
+        if (registered.documentId) created.push(registered.documentId);
         setStatus(file.name, { state: "done" });
       } catch (err) {
         setStatus(file.name, { state: "error", message: err instanceof Error ? err.message : String(err) });
@@ -94,6 +101,7 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
     }
     setBusy(false);
     if (fileRef.current) fileRef.current.value = "";
+    setTracked(created);
     router.refresh();
   }
 
@@ -192,6 +200,7 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
             ))}
           </ul>
         )}
+        <IngestProgress documentIds={tracked} />
       </CardContent>
     </Card>
   );

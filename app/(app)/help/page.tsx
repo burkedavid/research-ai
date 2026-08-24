@@ -58,6 +58,14 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: "Every quoted span is machine-checked, word for word, against its cited source chunk. A red flag means the words in the answer don't exactly match the source — never use a flagged quote in client work.",
   },
   {
+    q: "How do I know my upload is actually doing something?",
+    a: "The upload panel follows each file live through reading, AI theme-tagging and indexing, and tells you how many passages were found, whether there were extraction warnings, and whether anything failed. You can close the page — processing continues in the background, and the wave page shows the result. Before this, an upload said “done” as soon as the file was accepted, which was well before it had been processed.",
+  },
+  {
+    q: "What does uploading cost?",
+    a: "The AI reads every passage of every document, so ingestion costs money — usually a few pence per report, scaling with length. The upload panel shows the real cost of each document as it finishes, taken from the provider's own token counts rather than estimated afterwards, plus a total for the upload. Everything is itemised in Administration → Usage & cost.",
+  },
+  {
     q: "Should I accept the AI tags before approving a document?",
     a: "Accept AI tags first, then Approve & index — and that is the only order available, since tags can only be accepted while the document is in review. But they do different jobs. Approving is what makes the document searchable. Accepting the tags does not switch them on: an AI-suggested theme tag already counts for filtering and Trends exactly like a confirmed one. Accepting records them as confirmed by a person, under your name, in the audit log. So read the chips before you click it — one click can certify forty tags as human-checked. Skipping it is harmless, and leaves them honestly labelled as unconfirmed AI output.",
   },
@@ -338,6 +346,24 @@ export default async function HelpPage() {
             reading — one click can certify forty tags as human-checked. Scan the chips first; toggle any you disagree
             with; then accept the rest. Skipping it entirely does no harm, and simply leaves those tags honestly
             labelled as unconfirmed AI output.
+          </p>
+
+          <h3 className="pt-2 font-medium text-brand-900">What happens after you upload, and what it costs</h3>
+          <p>
+            Uploading is not instant. Each file is read, split into passages, given suggested theme tags by the AI, and
+            then indexed for search once you approve it. The upload panel now follows that live — <em>Reading the
+            document</em>, <em>AI reading it and suggesting themes</em>, <em>Ready for your review</em> — with the
+            number of passages found, any extraction warnings, and anything that failed. You can close the page; the
+            processing continues.
+          </p>
+          <p>
+            <strong>Ingestion costs money</strong>, because the AI reads every passage. The panel shows the actual cost
+            of each document as it finishes, and a total for the upload — typically a few pence per report, but it
+            scales with document length. Nothing is estimated after the fact: these are the real token counts from the
+            provider. Every charge is itemised in{" "}
+            <Link href="/admin" className="font-medium underline">Administration → Usage &amp; cost</Link>, alongside
+            searches, briefings and embeddings, so the monthly total never contains a surprise you could not have seen
+            when it happened.
           </p>
 
           <h3 className="pt-2 font-medium text-brand-900">When a file is refused or fails</h3>
