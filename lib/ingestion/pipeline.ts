@@ -6,6 +6,7 @@ import { getEmbeddings } from "@/lib/embeddings";
 import { parseFile, type ParsedBlock } from "@/lib/parsers";
 import { getStorage } from "@/lib/storage";
 import { chunkBlocks } from "./chunk";
+import { explainParseError } from "./file-errors";
 import { suggestMetadata } from "./suggest";
 
 /**
@@ -132,9 +133,13 @@ export async function parseAndChunkDocument(documentId: string): Promise<{ chunk
 
     return { chunkCount: drafts.length };
   } catch (err) {
+    // documents.error is read by a researcher on the wave page, so store the
+    // explanation rather than the library's developer-facing text.
+    const [row] = await db.select({ filename: documents.filename }).from(documents).where(eq(documents.id, documentId));
+    const problem = explainParseError(err, row?.filename ?? "This file");
     await db
       .update(documents)
-      .set({ status: "failed", error: String(err) })
+      .set({ status: "failed", error: problem.message })
       .where(eq(documents.id, documentId));
     throw err;
   }

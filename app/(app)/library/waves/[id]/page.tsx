@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { adviceForStoredError } from "@/lib/ingestion/file-errors";
 import { UploadForm } from "./upload-form";
 import { ConfirmWaveButton } from "./confirm-wave-button";
 import { WaveSettings } from "./wave-settings";
@@ -111,7 +112,18 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
                 <TableCell className="text-muted-foreground">v{d.version}</TableCell>
                 <TableCell>
                   <Badge className={STATUS_STYLES[d.status] ?? ""}>{d.status}</Badge>
-                  {d.error && <span className="ml-2 text-xs text-destructive">{d.error}</span>}
+                  {d.error && (
+                    <div className="mt-1.5 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs">
+                      <p className="font-medium text-destructive">{d.error}</p>
+                      {adviceForStoredError(d.error) && (
+                        <p className="mt-1 text-muted-foreground">{adviceForStoredError(d.error)}</p>
+                      )}
+                      <p className="mt-1 text-muted-foreground">
+                        Nothing from this file has been indexed. Upload the corrected file with the same name and it
+                        becomes version {d.version + 1}; the failed copy stays here for the record.
+                      </p>
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {Array.isArray(d.parseWarnings) && d.parseWarnings.length > 0 ? (

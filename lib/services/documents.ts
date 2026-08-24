@@ -3,6 +3,7 @@ import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { chunkThemes, chunks, documents, interviews, segments, themes, waves } from "@/db/schema";
 import { audit } from "@/lib/audit";
+import { checkFileSignature } from "@/lib/ingestion/file-errors";
 import { dispatchDocumentApproved, dispatchDocumentUploaded } from "@/lib/ingestion/dispatch";
 import { deleteDocumentData } from "@/lib/ingestion/pipeline";
 import { parseReportDate, toISODate } from "@/lib/ingestion/filename-date";
@@ -56,6 +57,14 @@ export async function registerUpload(params: {
 
   const storage = getStorage();
   const buffer = await storage.get({ url: params.blobUrl, pathname: params.blobPathname });
+  // Catch a mislabelled file here, while the person who uploaded it is still
+  // looking at the dialog — not as a failed row they find days later.
+  const problem = checkFileSignature(params.filename, buffer);
+  if (problem) {
+    await storage.delete({ url: params.blobUrl, pathname: params.blobPathname });
+    throw new Error(`${problem.message} ${problem.advice}`);
+  }
+
   const sha256 = createHash("sha256").update(buffer).digest("hex");
 
   // dedupe: identical content already live in this wave (§A4.2)

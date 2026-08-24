@@ -167,20 +167,27 @@ export function UploadForm({ waveId, storageDriver }: { waveId: string; storageD
         {statuses.length > 0 && (
           <ul className="mt-3 space-y-1 text-sm">
             {statuses.map((s) => (
-              <li key={s.filename} className="flex items-center gap-2">
-                <span
-                  className={
-                    s.state === "done"
-                      ? "text-green-700"
-                      : s.state === "error"
-                        ? "text-destructive"
-                        : "text-muted-foreground"
-                  }
-                >
-                  {s.state === "done" ? "✓" : s.state === "error" ? "✕" : "…"}
-                </span>
-                <span>{s.filename}</span>
-                {s.message && <span className="text-xs text-destructive">{s.message}</span>}
+              <li key={s.filename}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={
+                      s.state === "done"
+                        ? "text-green-700"
+                        : s.state === "error"
+                          ? "text-destructive"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    {s.state === "done" ? "✓" : s.state === "error" ? "✕" : "…"}
+                  </span>
+                  <span>{s.filename}</span>
+                </div>
+                {/* the rejection explains what to do about it, so give it room */}
+                {s.message && (
+                  <p className="ml-6 mt-1 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs leading-relaxed text-destructive">
+                    {s.message}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

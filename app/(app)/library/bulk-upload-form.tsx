@@ -146,12 +146,21 @@ export function BulkUploadForm({
         {rows.length > 0 && (
           <ul className="mt-3 space-y-1 text-sm">
             {rows.map((r) => (
-              <li key={r.filename} className="flex flex-wrap items-center gap-2">
-                <span className={r.state === "done" ? "text-green-700" : r.state === "error" ? "text-destructive" : "text-muted-foreground"}>
-                  {r.state === "done" ? "✓" : r.state === "error" ? "✕" : "…"}
-                </span>
-                <span className="font-medium">{r.filename}</span>
-                {r.detail && <span className={r.state === "error" ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>{r.detail}</span>}
+              <li key={r.filename}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={r.state === "done" ? "text-green-700" : r.state === "error" ? "text-destructive" : "text-muted-foreground"}>
+                    {r.state === "done" ? "✓" : r.state === "error" ? "✕" : "…"}
+                  </span>
+                  <span className="font-medium">{r.filename}</span>
+                  {r.detail && r.state !== "error" && <span className="text-xs text-muted-foreground">{r.detail}</span>}
+                </div>
+                {/* a rejected file gets its own block — the explanation is a
+                    sentence or two and is unreadable squeezed onto the row */}
+                {r.detail && r.state === "error" && (
+                  <p className="ml-6 mt-1 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-xs leading-relaxed text-destructive">
+                    {r.detail}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
