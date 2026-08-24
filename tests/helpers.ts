@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { projects, users, waves } from "@/db/schema";
 import { registerUpload } from "@/lib/services/documents";
@@ -29,10 +29,22 @@ export async function getProjectId(): Promise<string> {
 
 export async function createTestWave(corpusWave: CorpusWave): Promise<string> {
   const projectId = await getProjectId();
+  // Scope by project AND period, not by wave number alone. Wave numbers are
+  // unique only within a project (the DB uniqueness is on project+year+month),
+  // so an unscoped lookup can return another project's wave and file a whole
+  // wave's corpus under the wrong project and date — which is exactly how the
+  // 2020 corpus once ended up inside a 2026 wave, silently breaking retrieval
+  // ordering for every test that ran afterwards.
   const existing = await db
     .select()
     .from(waves)
-    .where(eq(waves.waveNumber, corpusWave.waveNumber));
+    .where(
+      and(
+        eq(waves.projectId, projectId),
+        eq(waves.year, corpusWave.year),
+        eq(waves.month, corpusWave.month),
+      ),
+    );
   if (existing.length > 0) return existing[0].id;
   const [wave] = await db
     .insert(waves)

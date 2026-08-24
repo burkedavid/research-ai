@@ -9,7 +9,14 @@ import {
   parseAndChunkDocument,
   suggestDocumentMetadata,
 } from "@/lib/ingestion/pipeline";
-import { EVENTS, inngest, type DocumentApprovedData, type DocumentUploadedData } from "./client";
+import { retagBatch } from "@/lib/services/retag";
+import {
+  EVENTS,
+  inngest,
+  type DocumentApprovedData,
+  type DocumentUploadedData,
+  type RetagRequestedData,
+} from "./client";
 
 /**
  * Ingestion pipeline (§B6): every step is a bounded, idempotent, retryable
@@ -48,6 +55,31 @@ export const embedOnApproval = inngest.createFunction(
   },
 );
 
+/**
+ * Apply one theme to the existing archive, one bounded batch at a time.
+ *
+ * Durable and resumable by construction: each batch is a step, and progress is
+ * recorded on the run row, so an interruption costs at most one batch rather
+ * than the whole (paid-for) run.
+ */
+export const retagTheme = inngest.createFunction(
+  { id: "retag-theme", retries: 3, triggers: [{ event: EVENTS.retagRequested }] },
+  async ({ event, step }) => {
+    const { runId } = event.data as unknown as RetagRequestedData;
+    let batch = 0;
+    let remaining = Infinity;
+    let status = "running";
+    while (remaining > 0) {
+      const result = await step.run(`retag-batch-${batch}`, () => retagBatch(runId));
+      remaining = result.remaining;
+      status = result.status;
+      batch++;
+      if (batch > 1000) throw new Error("Retag runaway: too many batches");
+    }
+    return { runId, batches: batch, status };
+  },
+);
+
 /** Nightly retention enforcement (§B5 deletion contract, §A13.1). */
 export const enforceRetention = inngest.createFunction(
   { id: "enforce-retention", triggers: [{ cron: "0 3 * * *" }] },
@@ -83,4 +115,4 @@ export const enforceRetention = inngest.createFunction(
   },
 );
 
-export const functions = [ingestDocument, embedOnApproval, enforceRetention];
+export const functions = [ingestDocument, embedOnApproval, retagTheme, enforceRetention];

@@ -303,6 +303,75 @@ export const chunkThemes = pgTable(
   (t) => [primaryKey({ columns: [t.chunkId, t.themeId] })],
 );
 
+/**
+ * A recorded attempt to apply ONE theme to the existing archive.
+ *
+ * The unit of work is (theme x scope), not (chunk). A per-chunk staleness marker
+ * could only say "re-read everything", and a full re-sweep would rewrite
+ * ai_suggested tags for themes nobody changed — with a non-deterministic model
+ * that silently reshuffles historical theme counts, which is fatal for a
+ * longitudinal archive. A theme-scoped run only ever INSERTs rows for its own
+ * theme, so it is monotone, idempotent and safe to resume.
+ *
+ * Status matters beyond bookkeeping: a theme whose run is incomplete is tagged
+ * on some waves and not others, and must be caveated wherever it is counted.
+ */
+export const taggingRunStatusEnum = pgEnum("tagging_run_status", [
+  "pending",
+  "running",
+  "complete",
+  "truncated",
+  "failed",
+  "cancelled",
+]);
+
+export const themeTaggingRuns = pgTable(
+  "theme_tagging_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    themeId: uuid("theme_id")
+      .notNull()
+      .references(() => themes.id, { onDelete: "cascade" }),
+    status: taggingRunStatusEnum("status").notNull().default("pending"),
+    /** taxonomy version (max taxonomy_revisions.id) this run answers for */
+    taxonomyVersion: integer("taxonomy_version").notNull().default(0),
+    /** cosine distance ceiling used to pick candidates — recorded so the
+     *  coverage claim is reproducible and falsifiable */
+    threshold: real("threshold").notNull(),
+    embeddingModel: text("embedding_model"),
+    llmModel: text("llm_model"),
+    candidatesTotal: integer("candidates_total").notNull().default(0),
+    candidatesDone: integer("candidates_done").notNull().default(0),
+    tagsAdded: integer("tags_added").notNull().default(0),
+    /** pre-run estimate shown before anyone commits to spending */
+    estCostGbp: numeric("est_cost_gbp", { precision: 12, scale: 6 }),
+    error: text("error"),
+    requestedBy: uuid("requested_by").references(() => users.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [index("tagging_runs_theme_idx").on(t.themeId, t.status)],
+);
+
+/** Candidate passages for a run, so it can resume exactly where it stopped
+ *  rather than re-selecting (and re-paying for) work already done. */
+export const taggingRunCandidates = pgTable(
+  "tagging_run_candidates",
+  {
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => themeTaggingRuns.id, { onDelete: "cascade" }),
+    chunkId: uuid("chunk_id")
+      .notNull()
+      .references(() => chunks.id, { onDelete: "cascade" }),
+    distance: real("distance").notNull(),
+    /** null until adjudicated; then whether the model said this theme applies */
+    matched: boolean("matched"),
+  },
+  (t) => [primaryKey({ columns: [t.runId, t.chunkId] })],
+);
+
 export const conversations = pgTable("conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")

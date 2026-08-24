@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { waves } from "@/db/schema";
 import type { SessionUser } from "@/lib/errors";
 import { comparePeriods, type CompareResult } from "./compare";
+import { incompleteThemeNames } from "./retag";
 
 export interface TrendPoint {
   wave: string;
@@ -13,6 +14,9 @@ export interface TrendPoint {
 export type Movement = "new" | "growing" | "continuing" | "fading";
 
 export interface ThemeMover {
+  /** true when this theme's tagging does not cover the whole archive, so its
+   *  movement is partly an artefact of when it was defined, not a finding */
+  coverageIncomplete?: boolean;
   themeName: string;
   earliestCount: number;
   latestCount: number;
@@ -72,14 +76,23 @@ export async function getTrendData(user: SessionUser): Promise<TrendData> {
     byTheme.set(p.theme_name, rec);
   }
 
+  // A theme added after the archive was indexed is tagged only on whatever has
+  // been re-read since. Left alone, it would score earliest=0 and be reported
+  // as NEW — asserting that a theme EMERGED when it was merely DEFINED. That is
+  // a false finding in a longitudinal product, so such themes are marked and
+  // never classified as new.
+  const incomplete = await incompleteThemeNames();
+
   const movers: ThemeMover[] = [...byTheme.entries()]
     .map(([themeName, { earliest, latest }]) => {
+      const coverageIncomplete = incomplete.has(themeName);
       let movement: Movement;
-      if (earliest === 0 && latest > 0) movement = "new";
+      if (coverageIncomplete) movement = "continuing";
+      else if (earliest === 0 && latest > 0) movement = "new";
       else if (latest > earliest) movement = "growing";
       else if (latest < earliest) movement = "fading";
       else movement = "continuing";
-      return { themeName, earliestCount: earliest, latestCount: latest, movement };
+      return { themeName, earliestCount: earliest, latestCount: latest, movement, coverageIncomplete };
     })
     .sort((a, b) => Math.abs(b.latestCount - b.earliestCount) - Math.abs(a.latestCount - a.earliestCount));
 

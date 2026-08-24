@@ -31,3 +31,21 @@ export async function dispatchDocumentApproved(documentId: string, userId: strin
     iterations++;
   }
 }
+
+/**
+ * Drive a theme-tagging run to completion. Inngest in production so the work
+ * is durable and retried; inline in dev/tests, same functions either way.
+ */
+export async function dispatchRetagRun(runId: string): Promise<void> {
+  if (env.PIPELINE_MODE === "inngest") {
+    await inngest.send({ name: "theme/retag.requested", data: { runId } });
+    return;
+  }
+  const { retagBatch } = await import("@/lib/services/retag");
+  let remaining = Infinity;
+  let iterations = 0;
+  while (remaining > 0 && iterations < 1000) {
+    ({ remaining } = await retagBatch(runId));
+    iterations++;
+  }
+}

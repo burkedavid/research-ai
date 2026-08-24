@@ -12,7 +12,8 @@ export type UsageFeature =
   | "ingest_suggest"
   | "ingest_embed"
   | "search_query"
-  | "reembed";
+  | "reembed"
+  | "retag";
 
 /**
  * Record one billable AI call. EVERY provider call — chat completion or

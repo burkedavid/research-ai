@@ -58,6 +58,14 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: "Every quoted span is machine-checked, word for word, against its cited source chunk. A red flag means the words in the answer don't exactly match the source — never use a flagged quote in client work.",
   },
   {
+    q: "I added a theme but it has no passages — why?",
+    a: "Because a theme only tags documents uploaded after it was added; nothing goes back over material already indexed. Administration → Themes lists any theme in that position and can apply it to the existing archive: it re-reads the passages most likely to match, shows you the count and estimated cost before anything is spent, and tags the ones that genuinely fit. Merging themes, by contrast, has always been retrospective — it moves existing tags across.",
+  },
+  {
+    q: "Why is a theme I just added not shown as a NEW trend?",
+    a: "Because it wouldn't be true. A theme added today has no tags on older waves, so it would automatically score zero-then-something and be reported as newly emerged — when all that happened is that someone defined it. Until a theme has been applied to the whole archive, Trends marks it as having incomplete coverage and will not classify it as new, growing or fading.",
+  },
+  {
     q: "How do I know my upload is actually doing something?",
     a: "The upload panel follows each file live through reading, AI theme-tagging and indexing, and tells you how many passages were found, whether there were extraction warnings, and whether anything failed. You can close the page — processing continues in the background, and the wave page shows the result. Before this, an upload said “done” as soon as the file was accepted, which was well before it had been processed.",
   },
@@ -489,6 +497,15 @@ export default async function HelpPage() {
             <li>
               <strong>Themes</strong> — add and define themes, merge duplicates (traceable, never destructive), and
               accept or dismiss new themes the ingest AI proposes.
+            </li>
+            <li>
+              <strong>Themes → applying a theme to the existing archive</strong> — a theme only tags documents
+              uploaded <em>after</em> it was added, so a theme created once your archive was loaded starts at zero
+              passages and would stay there. The Themes tab lists any such theme and can apply it retrospectively: it
+              re-reads the passages most likely to match and tags the ones that do. You are shown how many passages
+              and the estimated cost <em>first</em> — nothing is spent until you press Apply — and progress is shown
+              live while it runs. Existing tags are never changed, tags a reviewer confirmed are never touched, and no
+              other theme's counts move.
             </li>
             <li>
               <strong>Suggestions</strong> — the example questions on Ask the Archive and the example searches on Find

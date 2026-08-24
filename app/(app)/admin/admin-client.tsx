@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/native-select";
 import { PageHeader } from "@/components/page-header";
 import { SuggestionsPanel, type SuggestionSettings } from "./suggestions-panel";
+import { ThemeCoverage, type ThemeCoverageRow } from "./theme-coverage";
 import {
   Table,
   TableBody,
@@ -100,6 +101,7 @@ const FEATURE_LABEL: Record<string, string> = {
   ingest_embed: "Ingestion — embeddings",
   search_query: "Search query embeddings",
   reembed: "Re-embedding",
+  retag: "Applying a theme to the archive",
 };
 
 interface ModelChoice {
@@ -245,6 +247,9 @@ function describeAudit(a: AuditRow): string {
       if (op === "create") return `Created ${noun}${name ? ` “${name}”` : ""}`;
       if (op === "merge") return `Merged a ${noun} into another${d.chunksMoved ? ` (${d.chunksMoved} passages moved)` : ""}`;
       if (op === "update") return `Updated ${noun}${name ? ` “${name}”` : ""}`;
+      if (op === "retag_planned")
+        return `Checked what applying “${str("theme") ?? "a theme"}” to the archive would cost (${d.candidates ?? 0} passages)`;
+      if (op === "retag_cancelled") return "Cancelled applying a theme to the archive";
       return `Changed a ${noun}`;
     }
     default:
@@ -264,6 +269,7 @@ export function AdminClient({
   models,
   proposals,
   suggestions,
+  themeCoverage,
 }: {
   currentUserId: string;
   users: UserRow[];
@@ -276,6 +282,7 @@ export function AdminClient({
   models: ModelsProp;
   proposals: ProposalRow[];
   suggestions: SuggestionSettings;
+  themeCoverage: ThemeCoverageRow[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("users");
@@ -462,6 +469,10 @@ export function AdminClient({
               </CardContent>
             </Card>
           )}
+
+          <div className="mb-4">
+            <ThemeCoverage rows={themeCoverage} />
+          </div>
 
           <Card>
             <CardContent>

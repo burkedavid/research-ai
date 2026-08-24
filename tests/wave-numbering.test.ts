@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/db";
-import { projects, waves } from "@/db/schema";
+import { documents, projects, waves } from "@/db/schema";
 import { findOrCreateWave, renumberWavesChronologically } from "@/lib/services/waves";
 import { admin, ensureCorpusIngested, researcher } from "./helpers";
 
@@ -70,5 +70,28 @@ describe("wave numbering after a back-catalogue import", () => {
     const seeded = await numbersInDateOrder(other.id);
     await renumberWavesChronologically(await admin(), projectId);
     expect(await numbersInDateOrder(other.id)).toEqual(seeded);
+  });
+});
+
+describe("test isolation", () => {
+  it("a renumbered project cannot capture another project's corpus waves", async () => {
+    // Wave numbers are unique only within a project. Renumbering this project
+    // to 1..8 creates waves numbered 1, 32 and 76's neighbours; if the corpus
+    // helper matched on number alone it would file corpus material here.
+    const projectId = await freshProject("Numbering Test Monitor");
+    const corpusProject = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.name, "Consumer Sentiment Monitor"));
+    if (corpusProject.length === 0) return;
+
+    const strays = await db
+      .select({ id: waves.id, year: waves.year })
+      .from(waves)
+      .where(eq(waves.projectId, projectId));
+    for (const w of strays) {
+      const docs = await db.select({ id: documents.id }).from(documents).where(eq(documents.waveId, w.id));
+      expect(docs, `wave ${w.year} in the numbering-test project should hold no corpus documents`).toEqual([]);
+    }
   });
 });

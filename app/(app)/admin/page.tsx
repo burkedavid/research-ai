@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { auditLog, clients, themes, users } from "@/db/schema";
 import { getUsageSummary } from "@/lib/services/admin";
 import { defaultModel, getModelOverrides, selectableModels } from "@/lib/services/model-settings";
+import { getThemeCoverage } from "@/lib/services/retag";
 import { getSuggestionSettings } from "@/lib/services/suggestions";
 import { listThemeProposals } from "@/lib/services/themes";
 import { getSessionUser } from "@/lib/session";
@@ -23,7 +24,7 @@ export default async function AdminPage() {
     );
   }
 
-  const [userRows, themeRows, auditRows, projectRows, segmentRows, clientRows, usage, modelOverrides, proposals, suggestions] = await Promise.all([
+  const [userRows, themeRows, auditRows, projectRows, segmentRows, clientRows, usage, modelOverrides, proposals, suggestions, themeCoverage] = await Promise.all([
     db.select().from(users).orderBy(users.email),
     db.select().from(themes).orderBy(themes.name),
     db.select().from(auditLog).orderBy(desc(auditLog.createdAt)).limit(200),
@@ -53,6 +54,7 @@ export default async function AdminPage() {
     getModelOverrides(),
     listThemeProposals(),
     getSuggestionSettings(),
+    getThemeCoverage(),
   ]);
 
   return (
@@ -107,6 +109,7 @@ export default async function AdminPage() {
       }}
       proposals={proposals.map((p) => ({ id: p.id, name: p.name, occurrences: p.occurrences }))}
       suggestions={suggestions}
+      themeCoverage={themeCoverage}
     />
   );
 }
