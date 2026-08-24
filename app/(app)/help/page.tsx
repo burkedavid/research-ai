@@ -58,6 +58,18 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: "Every quoted span is machine-checked, word for word, against its cited source chunk. A red flag means the words in the answer don't exactly match the source — never use a flagged quote in client work.",
   },
   {
+    q: "Should I accept the AI tags before approving a document?",
+    a: "Accept AI tags first, then Approve & index — and that is the only order available, since tags can only be accepted while the document is in review. But they do different jobs. Approving is what makes the document searchable. Accepting the tags does not switch them on: an AI-suggested theme tag already counts for filtering and Trends exactly like a confirmed one. Accepting records them as confirmed by a person, under your name, in the audit log. So read the chips before you click it — one click can certify forty tags as human-checked. Skipping it is harmless, and leaves them honestly labelled as unconfirmed AI output.",
+  },
+  {
+    q: "My .docx was refused, but it opens fine in Word",
+    a: "Then it is almost certainly not really a .docx. A .docx is a specific format, not just an extension: renaming an old .doc, an .rtf, or a page saved from a browser or email does not convert it. Word opens such files happily, which is why they look fine on your machine, but nothing can read them here. Open the file in Word and use File → Save As → Word Document (.docx), then upload the saved copy. The same applies to .pptx and .xlsx.",
+  },
+  {
+    q: "A document says “failed” — what now?",
+    a: "Nothing from it has been indexed. The wave page shows the reason and what to do about it. Fix the file and upload it again under the same name: it becomes the next version, and the failed copy stays on record. Note that a failed document does not stop you confirming the wave, so check the wave isn't quietly missing a report before you confirm it.",
+  },
+  {
     q: "Why won't my wave confirm?",
     a: "Every document in the wave must be reviewed first — approved (indexed) or rejected. The confirm button stays disabled while anything is still awaiting review.",
   },
@@ -300,6 +312,48 @@ export default async function HelpPage() {
           <p className="text-xs text-muted-foreground">
             Duplicates are refused automatically; a changed file with the same name becomes a new version — nothing is
             ever silently overwritten.
+          </p>
+
+          <h3 className="pt-2 font-medium text-brand-900">Approving a document: the order, and what it means</h3>
+          <p>
+            <strong>Accept AI tags first, then Approve &amp; index.</strong> That is also the only order available:
+            tags can only be accepted while the document is in review, and approving takes it out of review.
+          </p>
+          <p>
+            It is worth knowing what each button actually does, because they are not two halves of the same step:
+          </p>
+          <ul className="list-disc space-y-2 pl-5">
+            <li>
+              <strong>Approve &amp; index</strong> is what makes the document searchable. Nothing in it can be
+              retrieved, quoted or counted until you approve it.
+            </li>
+            <li>
+              <strong>Accept AI tags</strong> does <em>not</em> switch the tags on — an AI-suggested theme tag already
+              counts for filtering and for Trends exactly like a confirmed one. What accepting changes is
+              <em> provenance</em>: it records the tags as confirmed by a person, under your name, in the audit log.
+            </li>
+          </ul>
+          <p>
+            So treat it as a statement, not a formality. Don&apos;t click <em>Accept AI tags</em> reflexively before
+            reading — one click can certify forty tags as human-checked. Scan the chips first; toggle any you disagree
+            with; then accept the rest. Skipping it entirely does no harm, and simply leaves those tags honestly
+            labelled as unconfirmed AI output.
+          </p>
+
+          <h3 className="pt-2 font-medium text-brand-900">When a file is refused or fails</h3>
+          <p>
+            A <strong>.docx</strong>, <strong>.pptx</strong> or <strong>.xlsx</strong> is a specific file format, not
+            just an extension. Renaming an old <em>.doc</em>, an <em>.rtf</em>, or a page saved from a browser or email
+            does not convert it — Word will open such a file happily, which is why it looks fine on your machine, but
+            nothing can read it here. The upload is refused straight away and names the format the file turned out to
+            be. The fix is always the same: open it in Office, <strong>File → Save As</strong> in the modern format,
+            and upload the saved copy.
+          </p>
+          <p>
+            If a document does fail after upload, it shows on the wave page with the reason and what to do about it.
+            Nothing from a failed file is indexed. Upload the corrected file under the same name and it becomes the
+            next version; the failed copy stays on record. A failed document does not block you from confirming the
+            wave — so check the wave is not missing a report before you confirm it.
           </p>
         </SectionCard>
 
