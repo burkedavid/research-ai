@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigserial,
   boolean,
   customType,
   date,
@@ -126,6 +127,38 @@ export const themes = pgTable("themes", {
   parentId: uuid("parent_id"),
   status: themeStatusEnum("status").notNull().default("active"),
   mergedInto: uuid("merged_into"),
+  // "was this theme added after those documents were indexed?" was not a
+  // derivable fact before these columns existed.
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  definitionUpdatedAt: timestamp("definition_updated_at", { withTimezone: true }),
+});
+
+/**
+ * Append-only log of every change to the controlled taxonomy.
+ *
+ * The taxonomy version is `max(id)` — monotone by construction, so there is no
+ * read-modify-write to lose and no clock to disagree with. More usefully, the
+ * rows since a given version ARE the work list: they say which themes changed,
+ * which is what scoping and pricing a re-tagging run needs. A single mutable
+ * "taxonomy last changed" timestamp could only ever answer yes/no.
+ */
+export const taxonomyRevisionKindEnum = pgEnum("taxonomy_revision_kind", [
+  "create",
+  "rename",
+  "define",
+  "merge",
+  "promote",
+]);
+
+export const taxonomyRevisions = pgTable("taxonomy_revisions", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  kind: taxonomyRevisionKindEnum("kind").notNull(),
+  themeId: uuid("theme_id").references(() => themes.id),
+  /** the theme name at the time, so history survives a later rename or merge */
+  themeName: text("theme_name").notNull(),
+  detail: jsonb("detail"),
+  actorId: uuid("actor_id").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Genuinely-new theme ideas the ingest AI proposes outside the controlled
@@ -257,6 +290,15 @@ export const chunkThemes = pgTable(
     source: chunkThemeSourceEnum("source").notNull(),
     // suggestion-pass confidence; human tags = NULL (authoritative)
     confidence: real("confidence"),
+    // Provenance. Without these, "when was this passage tagged, by which model,
+    // under which definition?" is unanswerable — and the answer only gets more
+    // unanswerable the longer the columns are missing, since every tag written
+    // meanwhile has no origin. `messages` already carries this discipline.
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /** the tagging run that wrote this row; NULL for ingest-time and human tags */
+    runId: uuid("run_id"),
+    /** model that produced an ai_suggested row; NULL for human tags */
+    model: text("model"),
   },
   (t) => [primaryKey({ columns: [t.chunkId, t.themeId] })],
 );

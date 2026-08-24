@@ -165,7 +165,10 @@ export async function suggestDocumentMetadata(documentId: string): Promise<{ sug
     sectionPath: c.sectionPath,
     pageRef: c.pageRef,
   }));
-  const { suggestions, newThemeProposals, usage } = await suggestMetadata(drafts, [...themeByName.keys()]);
+  const { suggestions, newThemeProposals, usage } = await suggestMetadata(
+    drafts,
+    activeThemes.map((t) => ({ name: t.name, definition: t.definition })),
+  );
 
   // record genuinely-new theme ideas for admin review (F1). Dedup by name;
   // re-proposals bump the occurrence count so common ideas rise to the top.
@@ -188,7 +191,13 @@ export async function suggestDocumentMetadata(documentId: string): Promise<{ sug
       if (!themeId) continue;
       await db
         .insert(chunkThemes)
-        .values({ chunkId: chunk.id, themeId, source: "ai_suggested", confidence: theme.confidence })
+        .values({
+          chunkId: chunk.id,
+          themeId,
+          source: "ai_suggested",
+          confidence: theme.confidence,
+          model: usage.model,
+        })
         .onConflictDoNothing();
     }
     const set: Partial<typeof chunks.$inferInsert> = { sentiment: suggestion.sentiment };

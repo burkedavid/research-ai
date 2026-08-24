@@ -6,6 +6,14 @@ import { resolveModel } from "@/lib/services/model-settings";
 import { env } from "@/lib/env";
 import type { ChunkDraft } from "./chunk";
 
+/** A theme as the tagger sees it. The definition is what disambiguates a label
+ *  like "Housing", so it travels with the name rather than sitting unused in
+ *  the database. */
+export interface TaxonomyEntry {
+  name: string;
+  definition: string | null;
+}
+
 export interface PiiSpan {
   text: string;
   kind: "name" | "phone" | "email" | "address" | "other";
@@ -146,10 +154,24 @@ export function heuristicThemes(content: string, themeNames: string[]): ThemeSug
  * is a drop-in optimisation for this call site once volumes justify it —
  * the call is already asynchronous inside a durable Inngest step.
  */
+/**
+ * The taxonomy as the model is shown it. A bare list of labels is a weak
+ * instruction — "Housing" could mean cost, quality or moving plans — and the
+ * researcher's definition is exactly what disambiguates it. Exported so a test
+ * can assert the definitions really do reach the prompt.
+ */
+export function buildTaxonomyPromptLines(taxonomy: TaxonomyEntry[]): string[] {
+  return [
+    "Controlled theme taxonomy — tag ONLY with these, using each definition to decide:",
+    ...taxonomy.map((t) => (t.definition?.trim() ? `- ${t.name}: ${t.definition.trim()}` : `- ${t.name}`)),
+  ];
+}
+
 export async function suggestMetadata(
   chunks: ChunkDraft[],
-  themeNames: string[],
+  taxonomy: TaxonomyEntry[],
 ): Promise<{ suggestions: ChunkSuggestions[]; newThemeProposals: string[]; usage: SuggestUsage }> {
+  const themeNames = taxonomy.map((t) => t.name);
   if (env.LLM_PROVIDER === "fake") {
     const proposals = new Set<string>();
     for (const c of chunks) for (const t of heuristicNewThemes(c.content)) if (!themeNames.includes(t)) proposals.add(t);
@@ -168,7 +190,11 @@ export async function suggestMetadata(
   const { model, modelId } = getLlm("ingestion", await resolveModel("ingestion"));
   const prompt = [
     "You label qualitative research chunks for a research archive.",
-    `Controlled theme taxonomy: ${themeNames.join("; ")}.`,
+    // A bare list of labels is a weak instruction: "Housing" could mean housing
+    // costs, housing quality or moving plans. The researcher's own definition
+    // is the thing that disambiguates it, so send it when there is one.
+    ...buildTaxonomyPromptLines(taxonomy),
+    "",
     "For each chunk: suggest up to 4 themes FROM THE TAXONOMY with confidence 0-1;",
     "propose genuinely new themes separately in newThemeProposals (rarely);",
     "assess the consumer's emotional tone as sentiment (positive|negative|neutral|mixed);",
