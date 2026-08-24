@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import { THEME_DEFINITIONS } from "../../lib/seed/corpus";
 
 const TEST_DB_URL = "postgres://postgres:postgres@localhost:5433/sentiment_hub_test";
 
@@ -46,26 +47,10 @@ export async function resetTestDatabase() {
   for (const [name, description] of segments) {
     await client`INSERT INTO segments (name, description) VALUES (${name}, ${description})`;
   }
-  const themes = [
-    "Cost of living and inflation",
-    "Energy and fuel",
-    "Food shopping",
-    "Savings, debt and budgeting",
-    "Banks and financial services",
-    "Pensions and retirement",
-    "Digital banking and technology",
-    "AI and automation",
-    "Trust, fairness and confidence",
-    "Optimism, anxiety and resilience",
-    "NHS and public services",
-    "Politics, elections and government policy",
-    "Work and employment",
-    "Housing",
-    "Holidays and discretionary spending",
-    "Christmas and seasonal pressures",
-  ];
-  for (const name of themes) {
-    await client`INSERT INTO themes (name) VALUES (${name})`;
+  // definitions come from the same source the app seeds from, so tests exercise
+  // the real taxonomy the tagger and reviewers actually see
+  for (const theme of THEME_DEFINITIONS) {
+    await client`INSERT INTO themes (name, definition) VALUES (${theme.name}, ${theme.definition})`;
   }
   const [clientRow] = await client`
     INSERT INTO clients (name, notes) VALUES ('Test Client', 'synthetic') RETURNING id

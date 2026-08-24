@@ -7,6 +7,7 @@ import { defaultModel, getModelOverrides, selectableModels } from "@/lib/service
 import { getThemeCoverage } from "@/lib/services/retag";
 import { getSuggestionSettings } from "@/lib/services/suggestions";
 import { listThemeProposals } from "@/lib/services/themes";
+import { env } from "@/lib/env";
 import { getSessionUser } from "@/lib/session";
 import { AdminClient } from "./admin-client";
 
@@ -41,13 +42,13 @@ export default async function AdminPage() {
     `) as unknown as Promise<Record<string, unknown>[]>,
     // usage counts make unmatched segments (0 chunks) obvious at a glance
     db.execute(sql`
-      SELECT s.id, s.name, s.description,
+      SELECT s.id, s.name, s.description, s.status, s.merged_into,
              count(DISTINCT c.id)::int AS chunk_count,
              count(DISTINCT c.interview_id)::int AS interview_count
       FROM segments s
       LEFT JOIN chunks c ON c.segment_id = s.id
-      GROUP BY s.id, s.name, s.description
-      ORDER BY s.name
+      GROUP BY s.id, s.name, s.description, s.status, s.merged_into
+      ORDER BY s.status, s.name
     `) as unknown as Promise<Record<string, unknown>[]>,
     db.select().from(clients).orderBy(clients.name),
     getUsageSummary(),
@@ -97,6 +98,8 @@ export default async function AdminPage() {
         id: String(s.id),
         name: String(s.name),
         description: (s.description as string | null) ?? null,
+        status: String(s.status ?? "active"),
+        mergedInto: (s.merged_into as string | null) ?? null,
         chunkCount: Number(s.chunk_count ?? 0),
         interviewCount: Number(s.interview_count ?? 0),
       }))}
@@ -110,6 +113,7 @@ export default async function AdminPage() {
       proposals={proposals.map((p) => ({ id: p.id, name: p.name, occurrences: p.occurrences }))}
       suggestions={suggestions}
       themeCoverage={themeCoverage}
+      pipelineMode={env.PIPELINE_MODE}
     />
   );
 }

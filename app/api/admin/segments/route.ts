@@ -90,19 +90,37 @@ export async function PUT(req: Request) {
     const body = mergeSchema.parse(await req.json());
     if (body.sourceId === body.targetId) throw new Error("Cannot merge a segment into itself");
 
+    const [source] = await db.select().from(segments).where(eq(segments.id, body.sourceId));
+    const [target] = await db.select().from(segments).where(eq(segments.id, body.targetId));
+    if (!source || !target) throw new Error("Segment not found");
+    if (source.status === "merged") throw new Error("That segment has already been merged");
+    if (target.status === "merged") throw new Error("Cannot merge into an already-merged segment");
+
     const moved = await db
       .update(chunks)
       .set({ segmentId: body.targetId })
       .where(eq(chunks.segmentId, body.sourceId))
       .returning({ id: chunks.id });
-    await db.delete(segments).where(eq(segments.id, body.sourceId));
+
+    // Recorded, not destructive: the row stays so a historic output citing this
+    // segment can still be traced to what it became.
+    await db
+      .update(segments)
+      .set({ status: "merged", mergedInto: body.targetId })
+      .where(eq(segments.id, body.sourceId));
 
     await audit({
       userId: admin.id,
       action: "segment_edit",
       entityType: "segment",
       entityId: body.sourceId,
-      detail: { op: "merge", into: body.targetId, chunksMoved: moved.length },
+      detail: {
+        op: "merge",
+        into: body.targetId,
+        sourceName: source.name,
+        targetName: target.name,
+        chunksMoved: moved.length,
+      },
       ip: clientIp(req),
     });
     return { chunksMoved: moved.length };

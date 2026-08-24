@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { chunkThemes, chunks, documents, interviews, segments, themeProposals, themes } from "@/db/schema";
 import { recordAiUsage } from "@/lib/ai-usage";
@@ -73,7 +73,10 @@ export async function parseAndChunkDocument(documentId: string): Promise<{ chunk
     if (doc.sourceType === "transcript") {
       const meta = extractInterviewMeta(blocks);
       if (meta.segmentName) {
-        const [segment] = await db.select().from(segments).where(eq(segments.name, meta.segmentName));
+        const [segment] = await db
+          .select()
+          .from(segments)
+          .where(and(eq(segments.name, meta.segmentName), eq(segments.status, "active")));
         segmentId = segment?.id ?? null;
       }
       if (meta.externalRef) {
@@ -99,7 +102,10 @@ export async function parseAndChunkDocument(documentId: string): Promise<{ chunk
     // resolve per-chunk segment names from report attributions (item 3)
     const segmentIdByName = new Map<string, string>();
     if (drafts.some((d) => d.segmentName)) {
-      const allSegments = await db.select({ id: segments.id, name: segments.name }).from(segments);
+      const allSegments = await db
+        .select({ id: segments.id, name: segments.name })
+        .from(segments)
+        .where(eq(segments.status, "active"));
       for (const s of allSegments) segmentIdByName.set(s.name, s.id);
     }
 

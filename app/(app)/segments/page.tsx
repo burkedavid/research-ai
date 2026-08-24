@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { segments } from "@/db/schema";
 import { requireUser } from "@/lib/session";
@@ -10,7 +11,11 @@ export const metadata = { title: "Explore Segments" };
 
 export default async function SegmentsPage() {
   await requireUser();
-  const rows = await db.select().from(segments).orderBy(segments.name);
+  const rows = await db
+    .select()
+    .from(segments)
+    .where(eq(segments.status, "active"))
+    .orderBy(segments.name);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">

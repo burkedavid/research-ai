@@ -59,7 +59,7 @@ export default async function DocumentPage({
   const { document, chunks } = data;
 
   const [allSegments, activeThemes, waveInterviews] = await Promise.all([
-    db.select().from(segments).orderBy(segments.name),
+    db.select().from(segments).where(eq(segments.status, "active")).orderBy(segments.name),
     db.select().from(themes).where(eq(themes.status, "active")).orderBy(themes.name),
     db.select().from(interviews).where(eq(interviews.waveId, document.waveId)),
   ]);
@@ -128,7 +128,7 @@ export default async function DocumentPage({
           embedded: c.embedded,
         }))}
         segments={allSegments.map((s) => ({ id: s.id, name: s.name }))}
-        themes={activeThemes.map((t) => ({ id: t.id, name: t.name }))}
+        themes={activeThemes.map((t) => ({ id: t.id, name: t.name, definition: t.definition }))}
         interviews={waveInterviews.map((i) => ({ id: i.id, ref: i.externalRef }))}
       />
     </div>

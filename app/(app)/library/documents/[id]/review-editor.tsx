@@ -33,7 +33,7 @@ interface Props {
   canApprove: boolean;
   chunks: ChunkView[];
   segments: { id: string; name: string }[];
-  themes: { id: string; name: string }[];
+  themes: { id: string; name: string; definition?: string | null }[];
   interviews: { id: string; ref: string }[];
 }
 
@@ -361,13 +361,16 @@ export function ReviewEditor({ documentId, highlightChunkId, documentStatus, can
                           : "rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800"
                         : "rounded-full border border-slate-200 px-2 py-0.5 text-xs text-slate-400 hover:border-slate-400"
                     }
-                    title={
+                    title={[
+                      // the definition is what tells a reviewer whether this
+                      // theme actually fits the passage
+                      t.definition?.trim() ? `${t.name}: ${t.definition.trim()}` : t.name,
                       tag
                         ? tag.source === "human"
                           ? "Confirmed by a reviewer"
                           : `AI-suggested (confidence ${tag.confidence?.toFixed(2) ?? "?"}) — click to keep as human tag, click again to remove`
-                        : "Add theme"
-                    }
+                        : "Click to add this theme",
+                    ].join("\n\n")}
                   >
                     {t.name}
                   </button>

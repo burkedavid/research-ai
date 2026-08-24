@@ -61,16 +61,20 @@ function Chip({
   label,
   selected,
   onToggle,
+  title,
 }: {
   label: string;
   selected: boolean;
   onToggle: () => void;
+  /** e.g. a theme's definition — what the label actually means */
+  title?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-pressed={selected}
+      title={title}
       className={
         selected
           ? "rounded-full bg-brand-900 px-2.5 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-brand-700"
@@ -285,6 +289,7 @@ export function FilterSidebar({
                 <Chip
                   key={t.id}
                   label={t.name}
+                  title={t.definition ?? undefined}
                   selected={value.themeIds.includes(t.id)}
                   onToggle={() => onChange({ ...value, themeIds: toggle(value.themeIds, t.id) })}
                 />

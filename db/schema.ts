@@ -114,10 +114,20 @@ export const waves = pgTable(
   (t) => [uniqueIndex("waves_project_year_month_uq").on(t.projectId, t.year, t.month)],
 );
 
+/**
+ * Segment merge is recorded, not destructive — matching how themes merge.
+ * Deleting the source row made every historic output citing "(Stretched
+ * Families, North)" untraceable, which is indefensible in a tool whose whole
+ * claim is citable evidence.
+ */
+export const segmentStatusEnum = pgEnum("segment_status", ["active", "merged"]);
+
 export const segments = pgTable("segments", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
   description: text("description"),
+  status: segmentStatusEnum("status").notNull().default("active"),
+  mergedInto: uuid("merged_into"),
 });
 
 export const themes = pgTable("themes", {

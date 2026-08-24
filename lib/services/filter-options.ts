@@ -6,7 +6,7 @@ import { REGIONS } from "@/lib/seed/segments";
 export interface FilterOptions {
   waves: { id: string; label: string }[];
   segments: { id: string; name: string }[];
-  themes: { id: string; name: string }[];
+  themes: { id: string; name: string; definition: string | null }[];
   regions: string[];
 }
 
@@ -14,7 +14,7 @@ export interface FilterOptions {
 export async function getFilterOptions(): Promise<FilterOptions> {
   const [waveRows, segmentRows, themeRows, regionRows] = await Promise.all([
     db.select().from(waves).orderBy(desc(waves.year), desc(waves.month)),
-    db.select().from(segments).orderBy(segments.name),
+    db.select().from(segments).where(eq(segments.status, "active")).orderBy(segments.name),
     db.select().from(themes).where(eq(themes.status, "active")).orderBy(themes.name),
     // regions actually present in the data — a hardcoded list would hide any
     // region the reports use that the parser wasn't expecting
@@ -34,7 +34,7 @@ export async function getFilterOptions(): Promise<FilterOptions> {
       label: `Wave ${w.waveNumber} — ${w.year}-${String(w.month).padStart(2, "0")}`,
     })),
     segments: segmentRows.map((s) => ({ id: s.id, name: s.name })),
-    themes: themeRows.map((t) => ({ id: t.id, name: t.name })),
+    themes: themeRows.map((t) => ({ id: t.id, name: t.name, definition: t.definition })),
     // fall back to the canonical list before anything is ingested
     regions: present.length ? [...known, ...extra] : [...REGIONS],
   };

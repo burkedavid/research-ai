@@ -58,6 +58,14 @@ const FAQ: { q: string; a: React.ReactNode }[] = [
     a: "Every quoted span is machine-checked, word for word, against its cited source chunk. A red flag means the words in the answer don't exactly match the source — never use a flagged quote in client work.",
   },
   {
+    q: "What happens to reports that cite a segment we later merged?",
+    a: "They stay traceable. Merging moves the passages to the target segment but keeps the original row, marked as merged into what it became — so a report citing “(Stretched Families, North)” can still be followed back. The merged segment disappears from the filter panel and nothing new is attributed to it. Theme merges work the same way.",
+  },
+  {
+    q: "Do theme definitions matter, or are they just notes?",
+    a: "They matter. The definition is sent to the AI that tags passages and is shown to reviewers on each theme chip and on the filter panel. Without one, the AI is given only a bare label, and an ambiguous label produces inconsistent tagging that is invisible until someone audits it. If you add a theme, write the definition.",
+  },
+  {
     q: "I added a theme but it has no passages — why?",
     a: "Because a theme only tags documents uploaded after it was added; nothing goes back over material already indexed. Administration → Themes lists any theme in that position and can apply it to the existing archive: it re-reads the passages most likely to match, shows you the count and estimated cost before anything is spent, and tags the ones that genuinely fit. Merging themes, by contrast, has always been retrospective — it moves existing tags across.",
   },
@@ -489,14 +497,21 @@ export default async function HelpPage() {
               access, deactivate accounts.
             </li>
             <li>
-              <strong>Segments</strong> — add, rename, describe and merge consumer segments. Each shows how many
+              <strong>Segments</strong> — add, rename, describe and merge consumer segments. Merging is recorded, not
+              destructive: the merged segment keeps its row, marked as merged into the one it became, so an older
+              report or saved output citing it can still be traced. It stops being offered as a filter and no new
+              material is attributed to it. Each shows how many
               passages it has: a segment reading <strong>0 — unmatched</strong> means your reports&apos; (Segment,
               Region) attributions aren&apos;t matching that spelling, which is the quickest way to spot an ingestion
               problem.
             </li>
             <li>
               <strong>Themes</strong> — add and define themes, merge duplicates (traceable, never destructive), and
-              accept or dismiss new themes the ingest AI proposes.
+              accept or dismiss new themes the ingest AI proposes. <strong>Definitions do real work</strong>: they are
+              sent to the AI that tags passages, and shown to reviewers on the theme chips and to everyone on the
+              filter panel. A bare label is ambiguous — &ldquo;Housing&rdquo; could mean the cost of it, the state of
+              it, or plans to move — so a written definition is the difference between consistent tagging and
+              inconsistent tagging nobody notices.
             </li>
             <li>
               <strong>Themes → applying a theme to the existing archive</strong> — a theme only tags documents

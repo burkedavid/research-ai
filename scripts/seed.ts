@@ -1,11 +1,11 @@
 import "./load-env";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { clients, projects, segments, themes, users } from "@/db/schema";
 import { buildReportDocx } from "@/lib/seed/build-files";
-import { CORPUS_WAVES, FRESCO_SEGMENTS, THEMES, renderTranscript } from "@/lib/seed/corpus";
+import { CORPUS_WAVES, FRESCO_SEGMENTS, THEMES, THEME_DEFINITIONS, renderTranscript } from "@/lib/seed/corpus";
 import { REAL_SEGMENTS } from "@/lib/seed/segments";
 
 /**
@@ -45,8 +45,15 @@ async function seedTaxonomy() {
     seen.add(seg.name);
     await db.insert(segments).values(seg).onConflictDoNothing();
   }
-  for (const name of THEMES) {
-    await db.insert(themes).values({ name }).onConflictDoNothing();
+  for (const theme of THEME_DEFINITIONS) {
+    await db
+      .insert(themes)
+      .values({ name: theme.name, definition: theme.definition })
+      // an existing taxonomy may have hand-written definitions; only fill blanks
+      .onConflictDoUpdate({
+        target: themes.name,
+        set: { definition: sql`coalesce(nullif(${themes.definition}, ''), excluded.definition)` },
+      });
   }
   console.log(`Seeded ${seen.size} segments, ${THEMES.length} themes`);
 }

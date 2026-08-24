@@ -60,6 +60,8 @@ interface SegmentRow {
   id: string;
   name: string;
   description: string | null;
+  status: string;
+  mergedInto: string | null;
   chunkCount: number;
   interviewCount: number;
 }
@@ -270,6 +272,7 @@ export function AdminClient({
   proposals,
   suggestions,
   themeCoverage,
+  pipelineMode,
 }: {
   currentUserId: string;
   users: UserRow[];
@@ -283,6 +286,9 @@ export function AdminClient({
   proposals: ProposalRow[];
   suggestions: SuggestionSettings;
   themeCoverage: ThemeCoverageRow[];
+  /** 'inngest' means the background scheduler is configured; anything else
+   *  means the nightly retention job never fires */
+  pipelineMode: string;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("users");
@@ -585,11 +591,22 @@ export function AdminClient({
                 {segments.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell>
+                      {s.status === "merged" ? (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground line-through">{s.name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            merged into {segments.find((x) => x.id === s.mergedInto)?.name ?? "?"} — kept so older
+                            outputs citing it stay traceable
+                          </span>
+                        </div>
+                      ) : (
                       <input
                         defaultValue={s.name}
                         onBlur={(e) => e.target.value !== s.name && call("/api/admin/segments", "PATCH", { segmentId: s.id, name: e.target.value })}
                         className="w-48 rounded border border-transparent px-1 py-0.5 text-sm font-medium text-slate-900 hover:border-input focus:border-input focus:outline-none"
                       />
+                      )}
+                      {s.status !== "merged" && (
                       <input
                         defaultValue={s.description ?? ""}
                         placeholder="add a description"
@@ -599,6 +616,7 @@ export function AdminClient({
                         }
                         className="mt-0.5 block w-72 rounded border border-transparent px-1 py-0.5 text-xs text-muted-foreground hover:border-input focus:border-input focus:outline-none"
                       />
+                      )}
                     </TableCell>
                     <TableCell>
                       {s.chunkCount === 0 ? (
@@ -609,13 +627,14 @@ export function AdminClient({
                     </TableCell>
                     <TableCell className="text-sm tabular-nums text-muted-foreground">{s.interviewCount}</TableCell>
                     <TableCell>
+                      {s.status !== "merged" && (
                       <select
                         value=""
                         onChange={(e) => {
                           const target = segments.find((x) => x.id === e.target.value);
                           if (
                             target &&
-                            confirm(`Merge "${s.name}" into "${target.name}"? ${s.chunkCount} passage(s) will be re-attributed and "${s.name}" removed.`)
+                            confirm(`Merge "${s.name}" into "${target.name}"? ${s.chunkCount} passage(s) move across. "${s.name}" is kept as a record so older outputs citing it stay traceable, and stops being offered as a filter.`)
                           ) {
                             call("/api/admin/segments", "PUT", { sourceId: s.id, targetId: target.id });
                           }
@@ -625,13 +644,14 @@ export function AdminClient({
                       >
                         <option value="">—</option>
                         {segments
-                          .filter((x) => x.id !== s.id)
+                          .filter((x) => x.id !== s.id && x.status !== "merged")
                           .map((x) => (
                             <option key={x.id} value={x.id}>
                               {x.name}
                             </option>
                           ))}
                       </select>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1049,6 +1069,17 @@ export function AdminClient({
             Documents older than a project&apos;s retention period are permanently deleted (file, chunks, full-text index and
             embeddings) by a nightly job. Deletions are audited.
           </p>
+          {pipelineMode !== "inngest" && (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-900">
+              <AlertDescription className="text-amber-900">
+                <strong>These periods are not being enforced.</strong> Deletion runs on a nightly background job that
+                only exists when the background scheduler (Inngest) is configured — this deployment is running in{" "}
+                <code>{pipelineMode}</code> mode, so no nightly job is scheduled and nothing will be deleted, whatever
+                you set below. Treat the values here as a stated intention, not a control: do not rely on them for a
+                retention or data-protection commitment until the scheduler is wired up.
+              </AlertDescription>
+            </Alert>
+          )}
           {projects.map((p) => (
             <Card key={p.id}>
               <CardContent className="flex items-center gap-3 text-sm">

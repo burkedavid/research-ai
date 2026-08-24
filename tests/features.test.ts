@@ -376,7 +376,11 @@ describe("reports-only verbatim access (item 8)", () => {
     const { findQuotes } = await import("@/lib/services/quotes");
     const { approveDocument } = await import("@/lib/services/documents");
     const reporter = await researcher();
-    const waveId = await createTestWave(CORPUS_WAVES[0]);
+    // Its OWN wave, not a golden-corpus wave. Fixtures uploaded into the corpus
+    // waves compete with the planted evidence in every ranking assertion the
+    // golden-question suite makes, which made those tests pass or fail
+    // depending on the order the files happened to run in.
+    const waveId = await createTestWave({ ...CORPUS_WAVES[0], waveNumber: 921, year: 1991 });
 
     // a report that quotes a consumer inline, attributed by (Segment, Region)
     const report = new Document({

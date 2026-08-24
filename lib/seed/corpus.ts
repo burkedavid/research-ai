@@ -15,24 +15,34 @@ export const FRESCO_SEGMENTS = [
   { name: "Prudent Professionals", description: "Mid-career, risk-aware, strong savers, pension-focused" },
 ] as const;
 
-export const THEMES = [
-  "Cost of living and inflation",
-  "Energy and fuel",
-  "Food shopping",
-  "Savings, debt and budgeting",
-  "Banks and financial services",
-  "Pensions and retirement",
-  "Digital banking and technology",
-  "AI and automation",
-  "Trust, fairness and confidence",
-  "Optimism, anxiety and resilience",
-  "NHS and public services",
-  "Politics, elections and government policy",
-  "Work and employment",
-  "Housing",
-  "Holidays and discretionary spending",
-  "Christmas and seasonal pressures",
-] as const;
+/**
+ * The controlled taxonomy, each with a definition.
+ *
+ * The definitions are not decoration: they are sent to the tagging model and
+ * shown to reviewers. A bare label is ambiguous — "Housing" could mean the cost
+ * of it, the state of it, or plans to move — and an ambiguous label produces
+ * inconsistent tagging that is invisible until someone audits it.
+ */
+export const THEME_DEFINITIONS: { name: string; definition: string }[] = [
+  { name: "Cost of living and inflation", definition: "Rising prices generally, the squeeze on household budgets, and consumers comparing what things cost now with what they used to." },
+  { name: "Energy and fuel", definition: "Gas, electricity and fuel: bills, tariffs, meters, heating behaviour, insulation, and the affordability of keeping warm." },
+  { name: "Food shopping", definition: "Grocery shopping: where people shop, switching to cheaper brands or discounters, meal planning, waste, and the cost of feeding a household." },
+  { name: "Savings, debt and budgeting", definition: "Managing money day to day: saving, overdrafts, borrowing, arrears, and the practices people use to keep control of spending." },
+  { name: "Banks and financial services", definition: "Experience of banks, building societies and insurers: service quality, branch closures, fees, rates, and how consumers are treated." },
+  { name: "Pensions and retirement", definition: "Retirement provision and planning: pension pots and contributions, state pension, and expectations about stopping work." },
+  { name: "Digital banking and technology", definition: "Using apps, online services and self-service channels for money, including confidence with them and the loss of in-person alternatives." },
+  { name: "AI and automation", definition: "Artificial intelligence and automation: encountering it in services, and its perceived effect on jobs and on the quality of help people get." },
+  { name: "Trust, fairness and confidence", definition: "Whether institutions are believed to behave fairly and honestly, including perceived profiteering and confidence in being treated properly." },
+  { name: "Optimism, anxiety and resilience", definition: "Emotional outlook: hopefulness or worry about the future, and how people describe coping with pressure." },
+  { name: "NHS and public services", definition: "Health services, councils and other public provision: access, waiting, quality, and reliance on them." },
+  { name: "Politics, elections and government policy", definition: "Government decisions, political leadership and elections, and their perceived effect on households." },
+  { name: "Work and employment", definition: "Jobs and income from work: hours, pay and pay rises, job security, and changes to how or where people work." },
+  { name: "Housing", definition: "Where people live: rent and mortgage costs, moving, housing quality and repairs, and the prospect of buying." },
+  { name: "Holidays and discretionary spending", definition: "Non-essential spending: holidays, eating out, subscriptions, hobbies and treats, including cutting them back or restoring them." },
+  { name: "Christmas and seasonal pressures", definition: "Seasonal spending peaks and the budgeting pressure around them, especially Christmas." },
+];
+
+export const THEMES = THEME_DEFINITIONS.map((t) => t.name);
 
 export interface CorpusTurn {
   moderator: string;
